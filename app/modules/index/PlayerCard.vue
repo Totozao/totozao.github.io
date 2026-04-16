@@ -12,8 +12,8 @@ const emits = defineEmits<{
 
 <template>
   <div class="w-full flex justify-between">
-    <h3>{{ player.name }}</h3>
-    <button class="cursor-pointer" @click="emits('removePlayer', player.id)">
+    <h3 class="font-medium">{{ player.name }}</h3>
+    <button class="cursor-pointer" @click="emits('removePlayer', player.name)">
       <SharedUiIcon icon="cross"></SharedUiIcon>
     </button>
   </div>

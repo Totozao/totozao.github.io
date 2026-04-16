@@ -12,7 +12,7 @@ const model = defineModel<string>();
     <input
       v-model="model"
       type="text"
-      class="border border-black rounded-[12px]"
+      class="outline-none border border-[#7996FC] rounded-[12px] p-[8px]"
     />
   </div>
 </template>
