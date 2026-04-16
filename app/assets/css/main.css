@@ -1,0 +1,15 @@
+@import "./reset.css";
+@import "./tailwind.css";
+
+html {
+  background-color: #dfe5fb;
+  scroll-behavior: smooth;
+}
+
+.defaultShadow {
+  box-shadow: 0px 4px 15px 0px #0f1a2c0d;
+}
+
+* {
+  transition: all 0.3s ease-in-out;
+}

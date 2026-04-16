@@ -1,0 +1,14 @@
+@import "tailwindcss";
+@theme {
+  --font-sans:
+    "Montserrat", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+  --breakpoint-xs: 23.4375rem; /* 375px - Mobile */
+  --breakpoint-sm: 40rem; /* 640px - Small tablet (default) */
+  --breakpoint-md: 48rem; /* 768px - Medium tablet */
+  --breakpoint-lg: 61.25rem; /* 980px - Custom tablet breakpoint */
+  --breakpoint-xl: 80rem; /* 1280px - Desktop (default) */
+  --breakpoint-2xl: 90rem; /* 1440px - Large desktop */
+  --breakpoint-3xl: 120rem; /* 1920px - Ultra wide */
+}
