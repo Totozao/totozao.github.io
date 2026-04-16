@@ -15,7 +15,6 @@ export default defineNuxtConfig({
       prefix: "Index",
     },
   ],
-  css: ["~/assets/css/main.css"],
   fonts: {
     families: [
       {
@@ -25,12 +24,20 @@ export default defineNuxtConfig({
       },
     ],
   },
+  experimental: {
+    serverAppConfig: false,
+  },
   vite: {
     optimizeDeps: {
       include: ["@vue/devtools-core", "@vue/devtools-kit"],
     },
-    plugins: [tailwindcss()],
+    plugins: [tailwindcss() as any],
   },
 
-  modules: ["@nuxt/fonts", "@pinia/nuxt", "pinia-plugin-persistedstate"],
+  modules: [
+    "@nuxt/fonts",
+    "@pinia/nuxt",
+    "pinia-plugin-persistedstate",
+    "@nuxt/eslint",
+  ],
 });

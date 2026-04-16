@@ -5,7 +5,7 @@
         v-if="isModalVisible"
         class="fixed top-0 left-0 z-[1010] overflow-hidden flex h-screen w-screen items-center justify-center bg-[#28282799]/60 backdrop-blur-md"
       >
-        <slot></slot>
+        <slot />
       </div>
     </Transition>
   </Teleport>

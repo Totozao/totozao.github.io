@@ -8,7 +8,7 @@ const { text, disabled } = defineProps<{
 <template>
   <button
     :disabled="disabled"
-    class="cursor-pointer font-semibold text-[#DFE5FB] bg-[#7996FC] rounded-[12px] p-[8px]"
+    class="cursor-pointer font-semibold text-[#DFE5FB] bg-[#7996FC] rounded-[12px] p-[12px]"
   >
     <span>{{ text }}</span>
   </button>

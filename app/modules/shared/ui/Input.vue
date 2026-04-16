@@ -1,6 +1,7 @@
 <script setup lang="ts">
-const { label } = defineProps<{
+const { label, type } = defineProps<{
   label: string;
+  type?: string;
 }>();
 
 const model = defineModel<string>();
@@ -11,7 +12,7 @@ const model = defineModel<string>();
     <label class="font-semibold">{{ label }}</label>
     <input
       v-model="model"
-      type="text"
+      :type="type || 'text'"
       class="outline-none border border-[#7996FC] rounded-[12px] p-[8px]"
     />
   </div>
