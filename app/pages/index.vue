@@ -64,6 +64,11 @@ const handleStartGame = () => {
             v-model="players.maxSectarians"
             type="number"
           ></SharedUiInput>
+          <SharedUiInput
+            label="Количество мафий"
+            v-model="players.amountOfMafia"
+            type="number"
+          ></SharedUiInput>
         </div>
       </div>
       <SharedUiButton

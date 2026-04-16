@@ -1,4 +1,9 @@
-import type { IPlayer, IRole } from "~/models/playerInfo";
+import {
+  type INight,
+  type INightAction,
+  type IPlayer,
+  type IRole,
+} from "~/models/playerInfo";
 import roles from "@/assets/data/roles.json";
 
 export const usePlayersInfo = defineStore(
@@ -6,8 +11,10 @@ export const usePlayersInfo = defineStore(
   () => {
     const activePlayers = ref<IPlayer[]>([]);
     const lastCirclePlayers = ref<IPlayer[]>([]);
-    const maxSectarians = ref<string>("0");
+    const maxSectarians = ref<string>("2");
     const inactiveRoles = ref<IRole[]>([]);
+    const nightsLogs = ref<INight[]>([]);
+    const amountOfMafia = ref<string>("1");
     const addPlayer = (playerName: string) => {
       if (activePlayers.value.some((player) => player.name === playerName)) {
         throw new Error("Игрок с таким именем уже существует");
@@ -20,19 +27,39 @@ export const usePlayersInfo = defineStore(
       });
     };
 
+    const updatePlayerData = (player: IPlayer) => {
+      const playerIndex = activePlayers.value.findIndex(
+        (p) => p.name === player.name,
+      );
+      if (playerIndex !== -1) {
+        activePlayers.value[playerIndex] = player;
+      }
+    };
+
     const isRoleInactive = (changingRole: IRole) => {
       return inactiveRoles.value.some(
         (role) => role.name === changingRole.name,
       );
     };
 
-    const mutateInactiveRoles = (role: IRole) => {
-      if (inactiveRoles.value.some((role) => role.name === role.name)) {
+    const createNightAction = (action: INightAction, nightIndex: number) => {
+      if (nightsLogs.value[nightIndex]) {
+        nightsLogs.value[nightIndex].actions.push(action);
+      } else {
+        nightsLogs.value.push({
+          indexOfNight: nightIndex,
+          actions: [action],
+        });
+      }
+    };
+
+    const mutateInactiveRoles = (changingRole: IRole) => {
+      if (inactiveRoles.value.some((role) => role.name === changingRole.name)) {
         inactiveRoles.value = inactiveRoles.value.filter(
-          (role) => role.name !== role.name,
+          (role) => role.name !== changingRole.name,
         );
       } else {
-        inactiveRoles.value.push(role);
+        inactiveRoles.value.push(changingRole);
       }
     };
 
@@ -70,6 +97,10 @@ export const usePlayersInfo = defineStore(
       activePlayers,
       lastCirclePlayers,
       maxSectarians,
+      amountOfMafia,
+      nightsLogs,
+      updatePlayerData,
+      createNightAction,
       isRoleInactive,
       mutateInactiveRoles,
       setPlayerRole,
