@@ -44,13 +44,6 @@ const handleStartGame = () => {
         ></SharedUiButton>
       </div>
       <div class="flex flex-col gap-[24px]">
-        <h2 class="font-semibold">Список ролей</h2>
-        <div v-for="(role, key) in roles" :key="key">
-          <h3 class="font-semibold">{{ role.name }}</h3>
-          <p>{{ role.description }}</p>
-        </div>
-      </div>
-      <div class="flex flex-col gap-[24px]">
         <h2 class="font-semibold">Настройки</h2>
         <div class="flex flex-col gap-[12px]">
           <h3 class="font-semibold">Какие роли отключить для данной сессии?</h3>

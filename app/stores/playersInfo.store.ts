@@ -15,6 +15,27 @@ export const usePlayersInfo = defineStore(
     const inactiveRoles = ref<IRole[]>([]);
     const nightsLogs = ref<INight[]>([]);
     const amountOfMafia = ref<string>("1");
+
+    const currentRole = ref<string | undefined>(undefined);
+
+    const handleNextRole = (roleList: (keyof typeof roles)[]) => {
+      const roleIndex = roleList.findIndex(
+        (role) => role === currentRole.value,
+      );
+      if (roleIndex === roleList.length - 1) {
+        currentRole.value = undefined;
+      } else {
+        const playerWithNextRole = activePlayers.value.filter((player) => {
+          return player.role === roleList[roleIndex + 1] && player.isAlive;
+        });
+        if (playerWithNextRole.length > 0) {
+          currentRole.value = roleList[roleIndex + 1];
+        } else {
+          handleNextRole(roleList);
+        }
+      }
+    };
+
     const addPlayer = (playerName: string) => {
       if (activePlayers.value.some((player) => player.name === playerName)) {
         throw new Error("Игрок с таким именем уже существует");
@@ -93,6 +114,11 @@ export const usePlayersInfo = defineStore(
       activePlayers.value = [];
     };
 
+    const getPlayerRole = (playerName: string) => {
+      return activePlayers.value.find((player) => player.name === playerName)!
+        .role;
+    };
+
     return {
       activePlayers,
       lastCirclePlayers,
@@ -108,6 +134,7 @@ export const usePlayersInfo = defineStore(
       removePlayer,
       saveLastCirclePlayers,
       resetStore,
+      getPlayerRole,
     };
   },
   {
