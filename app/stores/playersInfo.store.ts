@@ -63,6 +63,10 @@ export const usePlayersInfo = defineStore(
       );
     };
 
+    const isRolesInactive = (roles: IRole[]) => {
+      return roles.every((role) => isRoleInactive(role));
+    };
+
     const createNightAction = (action: INightAction, nightIndex: number) => {
       if (nightsLogs.value[nightIndex]) {
         nightsLogs.value[nightIndex].actions.push(action);
@@ -125,6 +129,7 @@ export const usePlayersInfo = defineStore(
       maxSectarians,
       amountOfMafia,
       nightsLogs,
+      inactiveRoles,
       updatePlayerData,
       createNightAction,
       isRoleInactive,

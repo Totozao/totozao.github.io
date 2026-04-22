@@ -15,21 +15,15 @@ const firstCircleOrder = [
 
 const currentRole = ref<keyof typeof roleAction>("detectiveZero");
 const playersInfo = usePlayersInfo();
+const inactiveRoles = computed(() => {
+  return playersInfo.inactiveRoles.map((role) => role.name);
+});
 
 const roleAction = {
   detectiveZero: {
     text: "Выберите игрока на роли детектива",
     action: (playerName: string) => {
       playersInfo.setPlayerRole(playerName, "detective");
-      if (playersInfo.isRoleInactive(roles.patrol)) {
-        currentRole.value = "journalistZero";
-      } else if (playersInfo.isRoleInactive(roles.journalist)) {
-        currentRole.value = "luckyGuyZero";
-      } else if (playersInfo.isRoleInactive(roles["lucky-guy"])) {
-        currentRole.value = "mafia";
-      } else {
-        currentRole.value = "patrolZero";
-      }
     },
   },
   patrolZero: {
@@ -147,47 +141,50 @@ const roleAction = {
   <NuxtLayout>
     <div class="flex flex-col items-center gap-[24px]">
       <h1 class="font-bold">Первый круг игры</h1>
-      <div class="flex flex-col items-center gap-[12px]">
-        <p>{{ roleAction[currentRole].text }}</p>
-        <div
-          class="flex flex-col gap-[12px]"
-          v-if="roleAction[currentRole].action.length === 2"
-        >
-          <div class="flex gap-[12px]">
-            <SharedUiDropDown
-              label="Выберите игрока на роли {{ currentRole }}"
-              :options="
-                playersInfo.activePlayers.map((player) => {
-                  return {
-                    label: player.name,
-                    value: player.name,
-                  };
-                })
-              "
-            ></SharedUiDropDown>
+      <ClientOnly>
+        <div class="flex flex-col items-center gap-[12px]">
+          <p>{{ roleAction[currentRole].text }}</p>
+          <div
+            class="flex flex-col gap-[12px]"
+            v-if="roleAction[currentRole].action.length === 2"
+          >
+            <div class="flex gap-[12px]">
+              <SharedUiDropDown
+                :label="`Выберите игрока на роли ${currentRole}`"
+                :options="
+                  playersInfo.activePlayers.map((player) => {
+                    return {
+                      label: player.name,
+                      value: player.name,
+                    };
+                  })
+                "
+              ></SharedUiDropDown>
+            </div>
+            <div class="flex flex-col gap-[12px]">
+              <SharedUiDropDown
+                label="Выберите цель для игрока"
+                :options="
+                  playersInfo.activePlayers.map((player) => {
+                    return {
+                      label: player.name,
+                      value: player.name,
+                    };
+                  })
+                "
+              ></SharedUiDropDown>
+            </div>
           </div>
-          <div class="flex flex-col gap-[12px]">
-            <SharedUiDropDown
-              label="Выберите цель для игрока"
-              :options="
-                playersInfo.activePlayers.map((player) => {
-                  return {
-                    label: player.name,
-                    value: player.name,
-                  };
-                })
-              "
-            ></SharedUiDropDown>
-          </div>
+          <template v-if="roleAction[currentRole].action.length === 1">
+            <SharedUiButton
+              v-for="player in playersInfo.activePlayers"
+              :key="player.name"
+              :text="player.name"
+              @click="roleAction[currentRole].action(player.name, '')"
+            ></SharedUiButton>
+          </template>
         </div>
-        <SharedUiButton
-          v-if="roleAction[currentRole].action.length === 1"
-          v-for="player in playersInfo.activePlayers"
-          :key="player.name"
-          :text="player.name"
-          @click="roleAction[currentRole].action(player.name, '')"
-        ></SharedUiButton>
-      </div>
+      </ClientOnly>
     </div>
   </NuxtLayout>
 </template>

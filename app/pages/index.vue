@@ -30,14 +30,16 @@ const handleStartGame = () => {
       <h1 class="font-bold">Добро пожаловать в мафию</h1>
       <div class="flex flex-col gap-[24px]">
         <h2 class="font-semibold">Список игроков</h2>
-        <TransitionGroup name="fade">
-          <IndexPlayerCard
-            v-for="player in players.activePlayers"
-            :key="player.name"
-            :player="player"
-            @remove-player="players.removePlayer"
-          ></IndexPlayerCard>
-        </TransitionGroup>
+        <ClientOnly>
+          <TransitionGroup name="fade">
+            <IndexPlayerCard
+              v-for="player in players.activePlayers"
+              :key="player.name"
+              :player="player"
+              @remove-player="players.removePlayer"
+            ></IndexPlayerCard>
+          </TransitionGroup>
+        </ClientOnly>
         <SharedUiButton
           text="Добавить игрока"
           @click="isAddPlayerModalVisible = true"
@@ -45,24 +47,26 @@ const handleStartGame = () => {
       </div>
       <div class="flex flex-col gap-[24px]">
         <h2 class="font-semibold">Настройки</h2>
-        <div class="flex flex-col gap-[12px]">
-          <h3 class="font-semibold">Какие роли отключить для данной сессии?</h3>
-          <div v-for="(role, key) in roles" :key="key">
-            <IndexRoleCard :role="role"></IndexRoleCard>
+        <ClientOnly>
+          <div class="flex flex-col gap-[12px]">
+            <h3 class="font-semibold">Какие роли отключить для данной сессии?</h3>
+            <div v-for="(role, key) in roles" :key="key">
+              <IndexRoleCard :role="role"></IndexRoleCard>
+            </div>
           </div>
-        </div>
-        <div class="flex flex-col gap-[12px]">
-          <SharedUiInput
-            label="Количество сектантов"
-            v-model="players.maxSectarians"
-            type="number"
-          ></SharedUiInput>
-          <SharedUiInput
-            label="Количество мафий"
-            v-model="players.amountOfMafia"
-            type="number"
-          ></SharedUiInput>
-        </div>
+          <div class="flex flex-col gap-[12px]">
+            <SharedUiInput
+              label="Количество сектантов"
+              v-model="players.maxSectarians"
+              type="number"
+            ></SharedUiInput>
+            <SharedUiInput
+              label="Количество мафий"
+              v-model="players.amountOfMafia"
+              type="number"
+            ></SharedUiInput>
+          </div>
+        </ClientOnly>
       </div>
       <SharedUiButton
         text="Начать игру"
