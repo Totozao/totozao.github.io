@@ -14,6 +14,7 @@ export const usePlayersInfo = defineStore(
     const maxSectarians = ref<string>("2");
     const inactiveRoles = ref<{ [key: string]: boolean }>({});
     const players = ref<IPlayer[]>([]);
+    const currentNight = ref<number>(0);
     const nightsLogs = ref<INight[]>([]);
     const amountOfMafia = ref<string>("1");
     const currentGameStep = ref<"voting" | "night" | "day">("voting");
@@ -35,6 +36,27 @@ export const usePlayersInfo = defineStore(
       activeRoles.value = roleNames.filter((role) => {
         return !excludingRoles.includes(role);
       });
+    };
+
+    const getCurrentNightActions = () => {
+      return nightsLogs.value[currentNight.value]?.actions || null;
+    };
+
+    const fillMissingRoles = () => {
+      activePlayers.value = activePlayers.value.map((player) => {
+        return {
+          name: player.name,
+          role: player.role || "civilian",
+          lives: player.lives,
+        };
+      });
+    };
+
+    const startGame = () => {
+      currentGameStep.value = "day";
+      clearDeadPlayers();
+      fillMissingRoles();
+      nightsLogs.value = [];
     };
 
     const handleNextRole = (roleList: (keyof typeof roles)[]) => {
@@ -154,6 +176,9 @@ export const usePlayersInfo = defineStore(
       players,
       currentRestrictedMembersCount,
       activeRoles,
+      fillMissingRoles,
+      getCurrentNightActions,
+      startGame,
       getPlayersWithRole,
       setActiveRoles,
       clearDeadPlayers,

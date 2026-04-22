@@ -18,9 +18,9 @@ const firstCircleOrder = [
 const route = useRoute();
 const router = useRouter();
 
-const currentRole = computed(() => {
-  return (route.query.role as keyof typeof roleAction) || "detectiveZero";
-});
+const currentRole = ref<keyof typeof roleAction>(
+  route.query.role as keyof typeof roleAction,
+);
 const playersInfo = usePlayersInfo();
 const multiPlayersSelection = ref<{
   firstSelection: string;
@@ -60,6 +60,7 @@ const handleNextRole = () => {
             role: nextRole.name,
           },
         });
+        currentRole.value = nextRole.name as keyof typeof affectedRoles;
         handleNextRole();
       } else {
         router.replace({
@@ -68,15 +69,21 @@ const handleNextRole = () => {
             role: nextRole.name,
           },
         });
+        currentRole.value = nextRole.name as keyof typeof affectedRoles;
       }
+    } else {
+      router.replace({
+        path: "/first-circle",
+        query: {
+          role: nextRole.name,
+        },
+      });
+      currentRole.value = nextRole.name as keyof typeof affectedRoles;
     }
-    router.replace({
-      path: "/first-circle",
-      query: {
-        role: nextRole.name,
-      },
-    });
   } else {
+    playersInfo.currentGameStep = "day";
+    playersInfo.clearDeadPlayers();
+    playersInfo.fillMissingRoles();
     navigateTo("/game");
   }
 };
@@ -255,7 +262,7 @@ const roleAction = {
     },
   },
   patrol: {
-    text: "Выберите цели игрока на роли патр",
+    text: "Выберите цели игрока на роли патрульного",
     action(playerName: string, targetPlayerName: string) {
       playersInfo.setPlayerRole(playerName, "patrol");
       const affectedPlayerRole = playersInfo.getPlayerRole(targetPlayerName);

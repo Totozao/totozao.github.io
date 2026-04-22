@@ -14,6 +14,10 @@ export default defineNuxtConfig({
       path: "~/modules/index",
       prefix: "Index",
     },
+    {
+      path: "~/modules/game",
+      prefix: "Game",
+    },
   ],
   fonts: {
     families: [

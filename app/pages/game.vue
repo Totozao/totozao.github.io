@@ -1,3 +1,12 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+const playersInfo = usePlayersInfo();
+</script>
 
-<template></template>
+<template>
+  <div class="flex flex-col">
+    <GameNightLogCard
+      v-for="action of playersInfo.getCurrentNightActions() || []"
+      :action="action"
+    ></GameNightLogCard>
+  </div>
+</template>
