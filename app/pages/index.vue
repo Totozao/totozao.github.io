@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import roles from "@/assets/data/roles.json";
 
-const players = usePlayersInfo();
+const playersInfo = usePlayersInfo();
 
 const isAddPlayerModalVisible = ref<boolean>(false);
 const handleAddPlayer = (playerName: string) => {
   try {
-    players.addPlayer(playerName);
+    playersInfo.addPlayer(playerName);
     isAddPlayerModalVisible.value = false;
   } catch (error) {
     console.error(error);
@@ -15,11 +15,20 @@ const handleAddPlayer = (playerName: string) => {
 };
 
 const handleStartGame = () => {
-  if (players.activePlayers.length < 6) {
+  if (playersInfo.players.length < 6) {
     alert("Недостаточно игроков");
     return;
   } else {
-    navigateTo("/first-circle");
+    playersInfo.activePlayers = [...playersInfo.players];
+    playersInfo.currentGameStep = "night";
+    playersInfo.resetActivePlayers();
+    playersInfo.setActiveRoles();
+    navigateTo({
+      path: "/first-circle",
+      query: {
+        role: "detectiveZero",
+      },
+    });
   }
 };
 </script>
@@ -33,10 +42,10 @@ const handleStartGame = () => {
         <ClientOnly>
           <TransitionGroup name="fade">
             <IndexPlayerCard
-              v-for="player in players.activePlayers"
+              v-for="player in playersInfo.players"
               :key="player.name"
               :player="player"
-              @remove-player="players.removePlayer"
+              @remove-player="playersInfo.removePlayer"
             ></IndexPlayerCard>
           </TransitionGroup>
         </ClientOnly>
@@ -49,7 +58,9 @@ const handleStartGame = () => {
         <h2 class="font-semibold">Настройки</h2>
         <ClientOnly>
           <div class="flex flex-col gap-[12px]">
-            <h3 class="font-semibold">Какие роли отключить для данной сессии?</h3>
+            <h3 class="font-semibold">
+              Какие роли отключить для данной сессии?
+            </h3>
             <div v-for="(role, key) in roles" :key="key">
               <IndexRoleCard :role="role"></IndexRoleCard>
             </div>
@@ -57,12 +68,12 @@ const handleStartGame = () => {
           <div class="flex flex-col gap-[12px]">
             <SharedUiInput
               label="Количество сектантов"
-              v-model="players.maxSectarians"
+              v-model="playersInfo.maxSectarians"
               type="number"
             ></SharedUiInput>
             <SharedUiInput
               label="Количество мафий"
-              v-model="players.amountOfMafia"
+              v-model="playersInfo.amountOfMafia"
               type="number"
             ></SharedUiInput>
           </div>

@@ -13,7 +13,7 @@ const playersInfo = usePlayersInfo();
     <span class="font-medium">{{ role.name }}</span>
     <SharedUiButton
       :text="playersInfo.isRoleInactive(role) ? 'Включить' : 'Выключить'"
-      @click="playersInfo.mutateInactiveRoles(role)"
+      @click="playersInfo.mutateInactiveRoles(role.value)"
     ></SharedUiButton>
   </div>
 </template>

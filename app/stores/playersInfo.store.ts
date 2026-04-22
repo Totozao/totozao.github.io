@@ -12,11 +12,30 @@ export const usePlayersInfo = defineStore(
     const activePlayers = ref<IPlayer[]>([]);
     const lastCirclePlayers = ref<IPlayer[]>([]);
     const maxSectarians = ref<string>("2");
-    const inactiveRoles = ref<IRole[]>([]);
+    const inactiveRoles = ref<{ [key: string]: boolean }>({});
+    const players = ref<IPlayer[]>([]);
     const nightsLogs = ref<INight[]>([]);
     const amountOfMafia = ref<string>("1");
+    const currentGameStep = ref<"voting" | "night" | "day">("voting");
+    const currentRestrictedMembersCount = ref<{
+      mafia: number;
+      sectarian: number;
+    }>({
+      mafia: 0,
+      sectarian: 0,
+    });
+
+    const activeRoles = ref<string[]>([]);
 
     const currentRole = ref<string | undefined>(undefined);
+
+    const setActiveRoles = () => {
+      let roleNames = Object.keys(roles);
+      let excludingRoles = ["lucky-guy", "civilian"];
+      activeRoles.value = roleNames.filter((role) => {
+        return !excludingRoles.includes(role);
+      });
+    };
 
     const handleNextRole = (roleList: (keyof typeof roles)[]) => {
       const roleIndex = roleList.findIndex(
@@ -26,7 +45,7 @@ export const usePlayersInfo = defineStore(
         currentRole.value = undefined;
       } else {
         const playerWithNextRole = activePlayers.value.filter((player) => {
-          return player.role === roleList[roleIndex + 1] && player.isAlive;
+          return player.role === roleList[roleIndex + 1];
         });
         if (playerWithNextRole.length > 0) {
           currentRole.value = roleList[roleIndex + 1];
@@ -36,15 +55,20 @@ export const usePlayersInfo = defineStore(
       }
     };
 
+    const getPlayersWithRole = (role: string) => {
+      return activePlayers.value.filter((player) => {
+        return player.role === role;
+      });
+    };
+
     const addPlayer = (playerName: string) => {
-      if (activePlayers.value.some((player) => player.name === playerName)) {
+      if (players.value.some((player) => player.name === playerName)) {
         throw new Error("Игрок с таким именем уже существует");
       }
-      activePlayers.value.push({
+      players.value.push({
         name: playerName,
         role: "",
         lives: 1,
-        isAlive: true,
       });
     };
 
@@ -58,13 +82,11 @@ export const usePlayersInfo = defineStore(
     };
 
     const isRoleInactive = (changingRole: IRole) => {
-      return inactiveRoles.value.some(
-        (role) => role.name === changingRole.name,
-      );
+      return inactiveRoles.value[changingRole.value];
     };
 
-    const isRolesInactive = (roles: IRole[]) => {
-      return roles.every((role) => isRoleInactive(role));
+    const resetActivePlayers = () => {
+      activePlayers.value = players.value;
     };
 
     const createNightAction = (action: INightAction, nightIndex: number) => {
@@ -78,14 +100,8 @@ export const usePlayersInfo = defineStore(
       }
     };
 
-    const mutateInactiveRoles = (changingRole: IRole) => {
-      if (inactiveRoles.value.some((role) => role.name === changingRole.name)) {
-        inactiveRoles.value = inactiveRoles.value.filter(
-          (role) => role.name !== changingRole.name,
-        );
-      } else {
-        inactiveRoles.value.push(changingRole);
-      }
+    const mutateInactiveRoles = (changingRole: string) => {
+      inactiveRoles.value[changingRole] = !inactiveRoles.value[changingRole];
     };
 
     const setPlayerRole = (
@@ -103,15 +119,19 @@ export const usePlayersInfo = defineStore(
     };
 
     const removePlayer = (playerName: string) => {
-      activePlayers.value = activePlayers.value.filter(
+      players.value = players.value.filter(
         (player) => player.name !== playerName,
       );
     };
 
-    const saveLastCirclePlayers = () => {
-      lastCirclePlayers.value = activePlayers.value.filter(
-        (player) => player.isAlive,
+    const clearDeadPlayers = () => {
+      activePlayers.value = activePlayers.value.filter(
+        (player) => player.lives > 0,
       );
+    };
+
+    const saveLastCirclePlayers = () => {
+      lastCirclePlayers.value = players.value;
     };
 
     const resetStore = () => {
@@ -130,6 +150,14 @@ export const usePlayersInfo = defineStore(
       amountOfMafia,
       nightsLogs,
       inactiveRoles,
+      currentGameStep,
+      players,
+      currentRestrictedMembersCount,
+      activeRoles,
+      getPlayersWithRole,
+      setActiveRoles,
+      clearDeadPlayers,
+      resetActivePlayers,
       updatePlayerData,
       createNightAction,
       isRoleInactive,
