@@ -33,8 +33,16 @@ const currentNightRole = computed(() => currentActiveRolesForNight.value[current
 
 const isNightPhase = computed(() => playersInfo.currentGameStep === 'night');
 const isDayPhase = computed(() => playersInfo.currentGameStep === 'day');
-const playerOptions = computed(() => playersInfo.activePlayers.map(p => ({ label: p.name, value: p.name })));
 const lastNightActions = computed(() => playersInfo.getLastNightActions() || []);
+const currentRoleActor = computed(() => {
+  const role = currentNightRole.value;
+  return playersInfo.activePlayers.find(p => p.role === role && p.lives > 0);
+});
+const targetPlayerOptions = computed(() => {
+  return playersInfo.activePlayers
+    .filter(p => p.name !== currentRoleActor.value?.name)
+    .map(p => ({ label: p.name, value: p.name }));
+});
 
 const isRoleHolderDead = (role: string) => {
   const holders = playersInfo.activePlayers.filter(p => p.role === role);
@@ -55,7 +63,9 @@ const isNightActionReady = computed(() => {
   return Boolean(
     multiPlayersSelection.value.firstSelection
     && multiPlayersSelection.value.secondSelection
-    && multiPlayersSelection.value.firstSelection !== multiPlayersSelection.value.secondSelection,
+    && multiPlayersSelection.value.firstSelection !== multiPlayersSelection.value.secondSelection
+    && multiPlayersSelection.value.firstSelection !== currentRoleActor.value?.name
+    && multiPlayersSelection.value.secondSelection !== currentRoleActor.value?.name,
   );
 });
 
@@ -95,13 +105,17 @@ const nextNightRole = () => {
 
 const executeNightAction = (target1?: string, target2?: string) => {
   const role = currentNightRole.value;
+  const actor = currentRoleActor.value?.name || 'Неизвестный';
   
   if (role && isRoleHolderDead(role)) {
     nextNightRole();
     return;
   }
 
-  const actor = playersInfo.activePlayers.find(p => p.role === role && p.lives > 0)?.name || 'Неизвестный';
+  if (target1 === actor || target2 === actor) {
+    toast.warning('Игрок не может выбрать самого себя.');
+    return;
+  }
 
   if (role === 'journalist' && target1 && target2) {
     roleActions.journalist(target1, target2);
@@ -343,6 +357,12 @@ useHead({
                     <p class="text-neutral-400">
                       {{ currentNightRole ? getRoleText(currentNightRole) : 'Нет активных ролей для этой ночи.' }}
                     </p>
+                    <p
+                      v-if="currentRoleActor"
+                      class="w-fit rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-medium text-emerald-200"
+                    >
+                      {{ currentRoleActor.name }} на роли {{ getRoleTitle(currentNightRole) }} жив и делает ход.
+                    </p>
                   </div>
                   <span class="rounded-full border border-blue-400/20 bg-blue-400/10 px-3 py-1 text-sm font-semibold text-blue-200">
                     {{ currentNightRoleIndex + 1 }}/{{ Math.max(currentActiveRolesForNight.length, 1) }}
@@ -442,6 +462,12 @@ useHead({
               <p class="text-xs uppercase tracking-[0.3em] text-blue-300/70">Ночное действие</p>
               <h2 class="mt-2 text-2xl font-bold text-neutral-100">{{ getRoleTitle(currentNightRole) }}</h2>
               <p class="mt-2 text-sm text-neutral-400">{{ currentNightRole ? getRoleText(currentNightRole) : 'Нет доступных действий.' }}</p>
+              <p
+                v-if="currentRoleActor"
+                class="mt-3 w-fit rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-medium text-emerald-200"
+              >
+                Ходит {{ currentRoleActor.name }}. Его нельзя выбрать целью.
+              </p>
             </div>
             <button
               class="rounded-full border border-neutral-700 bg-neutral-800/80 px-3 py-1 text-sm text-neutral-300 hover:border-blue-400/60 hover:text-blue-100 transition-colors"
@@ -456,12 +482,12 @@ useHead({
               <SharedUiDropDown
                 v-model="multiPlayersSelection.firstSelection"
                 label="Игрок 1"
-                :options="playerOptions"
+                :options="targetPlayerOptions"
               />
               <SharedUiDropDown
                 v-model="multiPlayersSelection.secondSelection"
                 label="Игрок 2"
-                :options="playerOptions"
+                :options="targetPlayerOptions"
               />
               <p
                 v-if="multiPlayersSelection.firstSelection && multiPlayersSelection.firstSelection === multiPlayersSelection.secondSelection"
@@ -479,11 +505,11 @@ useHead({
             
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full" v-else>
               <SharedUiButton
-                v-for="player in playersInfo.activePlayers"
-                :key="player.name"
-                :text="player.name"
+                v-for="player in targetPlayerOptions"
+                :key="player.value"
+                :text="player.label"
                 class="w-full"
-                @click="executeNightAction(player.name)"
+                @click="executeNightAction(player.value)"
               />
             </div>
           </div>

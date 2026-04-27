@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import roles from "@/assets/data/roles.json";
 import affectedRoles from "@/assets/data/affectedRoles.json";
 import { useGameEngine } from '~/composables/useGameEngine';
 
@@ -19,6 +18,7 @@ const firstCircleOrder = [
 const route = useRoute();
 const playersInfo = usePlayersInfo();
 const { handleNextRole, roleActions } = useGameEngine();
+const toast = useToast();
 
 const currentRoleName = computed(() => route.query.role as string);
 
@@ -50,6 +50,23 @@ const currentStepIndex = computed(() => {
 const playerOptions = computed(() => {
   return playersInfo.activePlayers.map((player) => ({ label: player.name, value: player.name }));
 });
+const selectedActorTargetOptions = computed(() => {
+  return playersInfo.activePlayers
+    .filter((player) => player.name !== multiPlayersSelection.value.firstSelection)
+    .map((player) => ({ label: player.name, value: player.name }));
+});
+const currentActionActor = computed(() => {
+  if (currentRoleName.value.toLowerCase().includes('zero') || isDoubleAction.value) {
+    return null;
+  }
+
+  return playersInfo.activePlayers.find((player) => player.role === currentRoleName.value && player.lives > 0) || null;
+});
+const singleActionPlayerOptions = computed(() => {
+  return playersInfo.activePlayers
+    .filter((player) => player.name !== currentActionActor.value?.name)
+    .map((player) => ({ label: player.name, value: player.name }));
+});
 
 const isEmergencyAvailable = computed(() => {
   return playersInfo.activeRoles.includes(currentRoleName.value)
@@ -72,15 +89,43 @@ const onNextRole = () => {
 };
 
 const executeAction = (actionName: string, arg1: string, arg2?: string) => {
-  const action = roleActions[actionName as keyof typeof roleActions];
-  if (action) {
-    if (arg2 !== undefined) {
-      (action as any)(arg1, arg2);
-    } else {
-      (action as any)(arg1);
-    }
-    onNextRole();
+  if (arg2 !== undefined && arg1 === arg2) {
+    toast.warning("Игрок не может выбрать самого себя.");
+    return;
   }
+
+  if (arg2 === undefined && currentActionActor.value?.name === arg1) {
+    toast.warning("Игрок не может выбрать самого себя.");
+    return;
+  }
+
+  if (actionName === 'detectiveZero') {
+    roleActions.detectiveZero(arg1);
+  } else if (actionName === 'patrolZero') {
+    roleActions.patrolZero(arg1);
+  } else if (actionName === 'journalistZero') {
+    roleActions.journalistZero(arg1);
+  } else if (actionName === 'lucky-guyZero') {
+    roleActions['lucky-guyZero'](arg1);
+  } else if (actionName === 'detective') {
+    roleActions.detective(arg1);
+  } else if (actionName === 'mafia' && arg2 !== undefined) {
+    roleActions.mafia(arg1, arg2);
+  } else if (actionName === 'don' && arg2 !== undefined) {
+    roleActions.don(arg1, arg2);
+  } else if (actionName === 'sectarian' && arg2 !== undefined) {
+    roleActions.sectarian(arg1, arg2);
+  } else if (actionName === 'journalist' && arg2 !== undefined) {
+    roleActions.journalist(arg1, arg2);
+  } else if (actionName === 'patrol' && arg2 !== undefined) {
+    roleActions.patrol(arg1, arg2);
+  } else if (actionName === 'doctor' && arg2 !== undefined) {
+    roleActions.doctor(arg1, arg2);
+  } else {
+    return;
+  }
+
+  onNextRole();
 };
 
 const getRoleText = (roleKey: string) => {
@@ -123,7 +168,11 @@ const isDoubleAction = computed(() => {
 });
 
 const isDoubleActionReady = computed(() => {
-  return Boolean(multiPlayersSelection.value.firstSelection && multiPlayersSelection.value.secondSelection);
+  return Boolean(
+    multiPlayersSelection.value.firstSelection
+    && multiPlayersSelection.value.secondSelection
+    && multiPlayersSelection.value.firstSelection !== multiPlayersSelection.value.secondSelection,
+  );
 });
 
 useHead({
@@ -174,8 +223,14 @@ useHead({
                 <SharedUiDropDown
                   v-model="multiPlayersSelection.secondSelection"
                   label="Игрок 2 (Цель)"
-                  :options="playerOptions"
+                  :options="selectedActorTargetOptions"
                 />
+                <p
+                  v-if="multiPlayersSelection.firstSelection && multiPlayersSelection.firstSelection === multiPlayersSelection.secondSelection"
+                  class="text-sm text-amber-300"
+                >
+                  Игрок не может выбрать самого себя.
+                </p>
                 <SharedUiButton
                   class="mt-2 w-full"
                   text="Продолжить"
@@ -186,11 +241,11 @@ useHead({
 
               <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
                 <SharedUiButton
-                  v-for="player in playersInfo.activePlayers"
-                  :key="player.name"
-                  :text="player.name"
+                  v-for="player in singleActionPlayerOptions"
+                  :key="player.value"
+                  :text="player.label"
                   class="w-full"
-                  @click="executeAction(currentRoleName, player.name)"
+                  @click="executeAction(currentRoleName, player.value)"
                 />
               </div>
             </div>
