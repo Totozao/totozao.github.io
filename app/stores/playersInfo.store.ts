@@ -35,7 +35,9 @@ export const usePlayersInfo = defineStore(
     const setActiveRoles = () => {
       let roleNames = Object.keys(roles);
       let excludingRoles = ["lucky-guy", "civilian"];
-      activeRoles.value = roleNames.filter((role) => !excludingRoles.includes(role));
+      activeRoles.value = roleNames.filter(
+        (role) => !excludingRoles.includes(role),
+      );
     };
 
     const getCurrentNightActions = () => {
@@ -58,12 +60,14 @@ export const usePlayersInfo = defineStore(
     };
 
     const handleNextRole = (roleList: string[]) => {
-      const roleIndex = roleList.findIndex((role) => role === currentRole.value);
+      const roleIndex = roleList.findIndex(
+        (role) => role === currentRole.value,
+      );
       if (roleIndex === roleList.length - 1) {
         currentRole.value = undefined;
       } else {
         const playerWithNextRole = activePlayers.value.filter(
-          (player) => player.role === roleList[roleIndex + 1]
+          (player) => player.role === roleList[roleIndex + 1],
         );
         if (playerWithNextRole.length > 0) {
           currentRole.value = roleList[roleIndex + 1];
@@ -89,7 +93,9 @@ export const usePlayersInfo = defineStore(
     };
 
     const updatePlayerData = (player: IPlayer) => {
-      const playerIndex = activePlayers.value.findIndex((p) => p.name === player.name);
+      const playerIndex = activePlayers.value.findIndex(
+        (p) => p.name === player.name,
+      );
       if (playerIndex !== -1) {
         activePlayers.value[playerIndex] = player;
       }
@@ -118,7 +124,11 @@ export const usePlayersInfo = defineStore(
       inactiveRoles.value[changingRole] = !inactiveRoles.value[changingRole];
     };
 
-    const setPlayerRole = (playerName: string, role: string, lives?: number) => {
+    const setPlayerRole = (
+      playerName: string,
+      role: string,
+      lives?: number,
+    ) => {
       const player = activePlayers.value.find((p) => p.name === playerName);
       if (player) {
         player.role = role;
@@ -129,11 +139,16 @@ export const usePlayersInfo = defineStore(
     };
 
     const removePlayer = (playerName: string) => {
-      players.value = players.value.filter((player) => player.name !== playerName);
+      players.value = players.value.filter(
+        (player) => player.name !== playerName,
+      );
+      useToast().success(`Игрок ${playerName} удален`);
     };
 
     const clearDeadPlayers = () => {
-      activePlayers.value = activePlayers.value.filter((player) => player.lives > 0);
+      activePlayers.value = activePlayers.value.filter(
+        (player) => player.lives > 0,
+      );
     };
 
     const saveLastCirclePlayers = () => {
@@ -145,7 +160,8 @@ export const usePlayersInfo = defineStore(
     };
 
     const getPlayerRole = (playerName: string): string | undefined => {
-      return activePlayers.value.find((player) => player.name === playerName)?.role;
+      return activePlayers.value.find((player) => player.name === playerName)
+        ?.role;
     };
 
     return {
@@ -182,5 +198,5 @@ export const usePlayersInfo = defineStore(
     persist: {
       storage: piniaPluginPersistedstate.localStorage(),
     },
-  }
+  },
 );
