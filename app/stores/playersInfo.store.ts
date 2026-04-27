@@ -15,11 +15,12 @@ export const usePlayersInfo = defineStore(
     const activePlayers = ref<IPlayer[]>([]);
     const lastCirclePlayers = ref<IPlayer[]>([]);
     const maxSectarians = ref<string>("2");
+    const amountOfMafia = ref<string>("1");
+    const circleOfFortuneRounds = ref<number>(2);
     const inactiveRoles = ref<{ [key: string]: boolean }>({});
     const players = ref<IPlayer[]>([]);
     const currentNight = ref<number>(0);
     const nightsLogs = ref<INight[]>([]);
-    const amountOfMafia = ref<string>("1");
     const currentGameStep = ref<"voting" | "night" | "day">("voting");
     const currentRestrictedMembersCount = ref<{
       mafia: number;
@@ -28,6 +29,8 @@ export const usePlayersInfo = defineStore(
       mafia: 0,
       sectarian: 0,
     });
+    
+    const totalSectariansCreated = ref<number>(0);
 
     const activeRoles = ref<string[]>([]);
     const currentRole = ref<string | undefined>(undefined);
@@ -169,12 +172,15 @@ export const usePlayersInfo = defineStore(
       lastCirclePlayers,
       maxSectarians,
       amountOfMafia,
+      circleOfFortuneRounds,
       nightsLogs,
       inactiveRoles,
       currentGameStep,
       players,
       currentRestrictedMembersCount,
+      totalSectariansCreated,
       activeRoles,
+      currentNight,
       fillMissingRoles,
       getCurrentNightActions,
       startGame,

@@ -100,6 +100,11 @@ const handleStartGame = () => {
                 v-model="playersInfo.amountOfMafia"
                 type="number"
               />
+              <SharedUiInput
+                label="Колесо Фортуны (кругов)"
+                v-model="playersInfo.circleOfFortuneRounds"
+                type="number"
+              />
             </div>
           </ClientOnly>
         </div>

@@ -50,7 +50,7 @@ export const useGameEngine = () => {
       
       playersInfo.createNightAction(
         { affectedPlayer: targetPlayerName, actionPlayer: playerName, action: 'kill' },
-        0
+        playersInfo.currentNight
       );
     },
     don: (playerName: string, targetPlayerName: string) => {
@@ -59,7 +59,7 @@ export const useGameEngine = () => {
       
       playersInfo.createNightAction(
         { affectedPlayer: targetPlayerName, actionPlayer: playerName, action: 'check' },
-        0
+        playersInfo.currentNight
       );
       
       if (affectedPlayerRole === 'detective' || affectedPlayerRole === 'patrol') {
@@ -68,13 +68,29 @@ export const useGameEngine = () => {
         toast.info(`${targetPlayerName} - не ментура`, 'Проверка Дона', 5000);
       }
     },
-    sectarian: (playerName: string, targetPlayerName: string) => {
-      playersInfo.setPlayerRole(playerName, 'sectarian');
-      playersInfo.setPlayerRole(targetPlayerName, 'sectarian');
-      playersInfo.currentRestrictedMembersCount.sectarian = 2;
+    sectarian: (playerName: string, targetPlayerName?: string) => {
+      const maxSec = parseInt(playersInfo.maxSectarians.toString()) || 0;
+      let targetAdded = false;
+
+      if (playersInfo.getPlayerRole(playerName) !== 'sectarian' && playersInfo.totalSectariansCreated < maxSec) {
+        playersInfo.setPlayerRole(playerName, 'sectarian');
+        playersInfo.totalSectariansCreated++;
+      }
+      
+      if (targetPlayerName) {
+        if (playersInfo.getPlayerRole(targetPlayerName) !== 'sectarian' && playersInfo.totalSectariansCreated < maxSec) {
+          playersInfo.setPlayerRole(targetPlayerName, 'sectarian');
+          playersInfo.totalSectariansCreated++;
+          targetAdded = true;
+          toast.success(`${targetPlayerName} завербован в секту`, 'Сектанты', 5000);
+        } else if (playersInfo.getPlayerRole(targetPlayerName) !== 'sectarian') {
+          toast.error(`Лимит сектантов исчерпан. ${targetPlayerName} не завербован`, 'Сектанты', 5000);
+        }
+      }
+
       playersInfo.createNightAction(
-        { affectedPlayer: targetPlayerName, actionPlayer: playerName, action: 'check' },
-        0
+        { affectedPlayer: targetPlayerName || '', actionPlayer: playerName, action: 'check' },
+        playersInfo.currentNight
       );
     },
     detective: (targetPlayerName: string) => {
@@ -84,7 +100,7 @@ export const useGameEngine = () => {
       
       playersInfo.createNightAction(
         { affectedPlayer: targetPlayerName, actionPlayer: detectivePlayer, action: 'check' },
-        0
+        playersInfo.currentNight
       );
 
       if (positiveRoles.includes(affectedPlayerRole!)) {
@@ -118,7 +134,7 @@ export const useGameEngine = () => {
       
       playersInfo.createNightAction(
         { affectedPlayer: playerName, actionPlayer: 'detective', action: 'check' },
-        0
+        playersInfo.currentNight
       );
 
       if (positiveRoles.includes(affectedPlayerRole!)) {
