@@ -25,7 +25,7 @@ const handleStartGame = () => {
     playersInfo.activePlayers = [...playersInfo.players];
     playersInfo.currentNight = 0;
     playersInfo.nightsLogs = [];
-    playersInfo.lastCirclePlayers = [];
+    playersInfo.lastCirclePlayers = [...playersInfo.players];
     playersInfo.totalSectariansCreated = 0;
     playersInfo.currentGameStep = "night";
     playersInfo.resetActivePlayers();
