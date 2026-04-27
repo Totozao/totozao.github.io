@@ -9,6 +9,17 @@ const emits = defineEmits<{
 }>();
 
 const playerName = ref<string>("");
+
+const handleKeyPress = () => {
+  if (playerName.value) {
+    emits("addPlayer", playerName.value);
+  } else {
+    useToast().addToast({
+      type: "error",
+      message: "Пожалуйста, введите имя",
+    });
+  }
+};
 </script>
 
 <template>
@@ -22,7 +33,11 @@ const playerName = ref<string>("");
       >
         <SharedUiIcon icon="cross"></SharedUiIcon>
       </button>
-      <SharedUiInput label="Имя" v-model="playerName"></SharedUiInput>
+      <SharedUiInput
+        label="Имя"
+        v-model="playerName"
+        @enterPressed="handleKeyPress"
+      ></SharedUiInput>
       <SharedUiButton
         :disabled="!playerName"
         text="Добавить"

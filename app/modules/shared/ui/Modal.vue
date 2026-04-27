@@ -3,10 +3,14 @@
     <Transition name="modal">
       <div
         v-if="isModalVisible"
-        class="fixed inset-0 z-[1010] overflow-hidden flex h-screen w-screen items-center justify-center bg-black/60 backdrop-blur-md p-4"
+        class="fixed inset-0 z-[49] overflow-hidden flex h-screen w-screen items-center justify-center bg-black/60 backdrop-blur-md p-4"
       >
-        <div class="relative w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl p-6 sm:p-8 overflow-y-auto max-h-[90vh]">
-          <div class="absolute inset-0 bg-gradient-to-br from-rose-500/5 to-purple-600/5 pointer-events-none rounded-2xl"></div>
+        <div
+          class="relative w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl p-6 sm:p-8 overflow-y-auto max-h-[90vh]"
+        >
+          <div
+            class="absolute inset-0 bg-gradient-to-br from-rose-500/5 to-purple-600/5 pointer-events-none rounded-2xl"
+          ></div>
           <slot />
         </div>
       </div>
@@ -15,7 +19,7 @@
 </template>
 
 <script lang="ts" setup>
-import { watch } from 'vue';
+import { watch } from "vue";
 
 const { isModalVisible } = defineProps<{
   isModalVisible: boolean;
