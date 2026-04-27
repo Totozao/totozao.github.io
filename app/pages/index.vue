@@ -34,6 +34,13 @@ const handleStartGame = () => {
     });
   }
 };
+
+useHead({
+  title: "Мафия - Настройка игры",
+  meta: [
+    { name: "description", content: "Настройте игру и добавьте участников перед началом" },
+  ],
+});
 </script>
 
 <template>

@@ -4,7 +4,7 @@ const { label, type } = defineProps<{
   type?: string;
 }>();
 
-const model = defineModel<string>();
+const model = defineModel<string | number>();
 
 const emit = defineEmits(["enterPressed"]);
 </script>

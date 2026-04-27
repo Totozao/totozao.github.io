@@ -64,7 +64,7 @@ const nextNightRole = () => {
 const executeNightAction = (target1?: string, target2?: string) => {
   const role = currentNightRole.value;
   
-  if (isRoleHolderDead(role)) {
+  if (role && isRoleHolderDead(role)) {
     nextNightRole();
     return;
   }
@@ -183,14 +183,14 @@ const resolveVoting = () => {
       const spin = () => {
         if (spins < maxSpins) {
            const randomP = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
-           fortuneWheelActivePlayer.value = randomP.name;
+           fortuneWheelActivePlayer.value = randomP?.name || '';
            spins++;
            delay += 15; // smooth slow down
            setTimeout(spin, delay);
         } else {
-           fortuneWheelActivePlayer.value = savedPlayer.name;
+           fortuneWheelActivePlayer.value = savedPlayer?.name || '';
            setTimeout(() => {
-             toast.success(`Колесо Фортуны спасло игрока: ${savedPlayer.name}! Никто не изгнан.`, 'Колесо Фортуны', 6000);
+             toast.success(`Колесо Фортуны спасло игрока: ${savedPlayer?.name || ''}! Никто не изгнан.`, 'Колесо Фортуны', 6000);
              finishVotingPhase(kickedPlayer, true);
            }, 1500);
         }
@@ -253,6 +253,12 @@ const checkWinConditions = () => {
   }
 };
 
+useHead({
+  title: "Мафия - Игра",
+  meta: [
+    { name: "description", content: "Играйте в Мафию и узнайте, кто из вас мафия" },
+  ],
+});
 </script>
 
 <template>
@@ -281,7 +287,7 @@ const checkWinConditions = () => {
               
               <div class="flex flex-col items-center gap-6 relative z-10">
                 <h2 class="text-xl font-semibold text-center text-neutral-200">
-                  {{ getRoleText(currentNightRole) }}
+                  {{ currentNightRole ? getRoleText(currentNightRole) : '' }}
                 </h2>
 
                 <div class="w-full flex flex-col gap-4" v-if="isDoubleTarget">

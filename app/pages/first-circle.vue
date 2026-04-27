@@ -90,6 +90,13 @@ const isDoubleAction = computed(() => {
   const doubleActionRoles = ['mafia', 'don', 'sectarian', 'journalist', 'patrol', 'doctor'];
   return doubleActionRoles.includes(currentRoleName.value);
 });
+
+useHead({
+  title: "Мафия - Первый круг игры",
+  meta: [
+    { name: "description", content: "Выберите игрока на первый круг игры" },
+  ],
+});
 </script>
 
 <template>
