@@ -1,22 +1,25 @@
 <script setup lang="ts">
 import roles from "@/assets/data/roles.json";
+import { useToast } from "~/composables/useToast";
 
 const playersInfo = usePlayersInfo();
+const toast = useToast();
 
 const isAddPlayerModalVisible = ref<boolean>(false);
 const handleAddPlayer = (playerName: string) => {
   try {
     playersInfo.addPlayer(playerName);
     isAddPlayerModalVisible.value = false;
-  } catch (error) {
+    toast.success(`Игрок ${playerName} успешно добавлен`);
+  } catch (error: any) {
     console.error(error);
-    alert(error);
+    toast.error(error.message || "Ошибка при добавлении игрока");
   }
 };
 
 const handleStartGame = () => {
   if (playersInfo.players.length < 6) {
-    alert("Недостаточно игроков");
+    toast.warning("Недостаточно игроков (минимум 6)");
     return;
   } else {
     playersInfo.activePlayers = [...playersInfo.players];
@@ -35,61 +38,86 @@ const handleStartGame = () => {
 
 <template>
   <NuxtLayout name="enter">
-    <div class="flex flex-col gap-[24px] items-center px-[20px]">
-      <h1 class="font-bold">Добро пожаловать в мафию</h1>
-      <div class="flex flex-col gap-[24px]">
-        <h2 class="font-semibold">Список игроков</h2>
-        <ClientOnly>
-          <TransitionGroup name="fade">
-            <IndexPlayerCard
-              v-for="player in playersInfo.players"
-              :key="player.name"
-              :player="player"
-              @remove-player="playersInfo.removePlayer"
-            ></IndexPlayerCard>
-          </TransitionGroup>
-        </ClientOnly>
-        <SharedUiButton
-          text="Добавить игрока"
-          @click="isAddPlayerModalVisible = true"
-        ></SharedUiButton>
+    <div class="flex flex-col items-center gap-8 w-full max-w-2xl mx-auto py-12 px-6">
+      <div class="text-center space-y-4">
+        <h1 class="text-4xl sm:text-5xl font-extrabold bg-gradient-to-r from-rose-500 via-purple-500 to-indigo-500 bg-clip-text text-transparent">
+          Добро пожаловать в Мафию
+        </h1>
+        <p class="text-neutral-400">Настройте игру и добавьте участников перед началом</p>
       </div>
-      <div class="flex flex-col gap-[24px]">
-        <h2 class="font-semibold">Настройки</h2>
-        <ClientOnly>
-          <div class="flex flex-col gap-[12px]">
-            <h3 class="font-semibold">
-              Какие роли отключить для данной сессии?
-            </h3>
-            <div v-for="(role, key) in roles" :key="key">
-              <IndexRoleCard :role="role"></IndexRoleCard>
+
+      <div class="w-full bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-xl backdrop-blur-sm relative overflow-hidden">
+        <div class="flex flex-col gap-6 relative z-10">
+          <div class="flex justify-between items-center border-b border-neutral-800 pb-4">
+            <h2 class="text-xl font-bold text-neutral-200">Список игроков <span class="text-rose-500">({{ playersInfo.players.length }})</span></h2>
+            <SharedUiButton
+              text="+ Добавить"
+              class="!py-2 !px-4 text-sm"
+              @click="isAddPlayerModalVisible = true"
+            />
+          </div>
+          
+          <ClientOnly>
+            <TransitionGroup name="fade" tag="div" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <IndexPlayerCard
+                v-for="player in playersInfo.players"
+                :key="player.name"
+                :player="player"
+                @remove-player="playersInfo.removePlayer"
+                class="bg-neutral-800/50 p-3 rounded-xl border border-neutral-700 flex justify-between items-center"
+              />
+            </TransitionGroup>
+            
+            <div v-if="playersInfo.players.length === 0" class="text-center py-8 text-neutral-500">
+              Пока нет ни одного игрока. Добавьте участников чтобы начать игру.
             </div>
-          </div>
-          <div class="flex flex-col gap-[12px]">
-            <SharedUiInput
-              label="Количество сектантов"
-              v-model="playersInfo.maxSectarians"
-              type="number"
-            ></SharedUiInput>
-            <SharedUiInput
-              label="Количество мафий"
-              v-model="playersInfo.amountOfMafia"
-              type="number"
-            ></SharedUiInput>
-          </div>
-        </ClientOnly>
+          </ClientOnly>
+        </div>
       </div>
+
+      <div class="w-full bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-xl backdrop-blur-sm relative overflow-hidden">
+        <div class="flex flex-col gap-6 relative z-10">
+          <h2 class="text-xl font-bold text-neutral-200 border-b border-neutral-800 pb-4">Настройки сессии</h2>
+          
+          <ClientOnly>
+            <div class="flex flex-col gap-4">
+              <h3 class="font-medium text-neutral-400">Исключаемые роли</h3>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div v-for="(role, key) in roles" :key="key">
+                  <IndexRoleCard :role="role" />
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t border-neutral-800">
+              <SharedUiInput
+                label="Количество сектантов"
+                v-model="playersInfo.maxSectarians"
+                type="number"
+              />
+              <SharedUiInput
+                label="Количество мафий"
+                v-model="playersInfo.amountOfMafia"
+                type="number"
+              />
+            </div>
+          </ClientOnly>
+        </div>
+      </div>
+
       <SharedUiButton
+        class="w-full max-w-sm mt-4 text-lg py-4 !bg-gradient-to-r !from-rose-600 !to-purple-600 border-none shadow-[0_0_30px_rgba(225,29,72,0.3)] hover:shadow-[0_0_40px_rgba(225,29,72,0.5)]"
         text="Начать игру"
         @click="handleStartGame"
-      ></SharedUiButton>
+      />
     </div>
-    <Transition name="fade">
+
+    <SharedUiModal :isModalVisible="isAddPlayerModalVisible">
       <IndexAddPlayerModal
         :isModalVisible="isAddPlayerModalVisible"
         @close-modal="isAddPlayerModalVisible = false"
         @add-player="handleAddPlayer"
-      ></IndexAddPlayerModal>
-    </Transition>
+      />
+    </SharedUiModal>
   </NuxtLayout>
 </template>

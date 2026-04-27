@@ -8,12 +8,12 @@ const model = defineModel<string>();
 </script>
 
 <template>
-  <div class="flex flex-col gap-[8px]">
-    <label class="font-semibold">{{ label }}</label>
+  <div class="flex flex-col gap-2 w-full">
+    <label class="text-sm font-medium text-neutral-400 ml-1">{{ label }}</label>
     <input
       v-model="model"
       :type="type || 'text'"
-      class="outline-none border border-[#7996FC] rounded-[12px] p-[8px]"
+      class="w-full outline-none bg-neutral-900 border border-neutral-800 text-neutral-100 rounded-xl px-4 py-3 focus:border-rose-500 focus:ring-1 focus:ring-rose-500/50 transition-all placeholder-neutral-600 shadow-inner hover:border-neutral-700"
     />
   </div>
 </template>
