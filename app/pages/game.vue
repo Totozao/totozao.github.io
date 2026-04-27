@@ -35,7 +35,6 @@ const isNightPhase = computed(() => playersInfo.currentGameStep === 'night');
 const isDayPhase = computed(() => playersInfo.currentGameStep === 'day');
 const playerOptions = computed(() => playersInfo.activePlayers.map(p => ({ label: p.name, value: p.name })));
 const lastNightActions = computed(() => playersInfo.getLastNightActions() || []);
-const canRestoreLastCircle = computed(() => playersInfo.lastCirclePlayers.length > 0);
 
 const isRoleHolderDead = (role: string) => {
   const holders = playersInfo.activePlayers.filter(p => p.role === role);
@@ -135,20 +134,6 @@ const skipNightAction = () => {
   }
 
   nextNightRole();
-};
-
-const restoreLastCirclePlayers = () => {
-  if (!playersInfo.restoreLastCirclePlayers()) {
-    toast.warning('Нет сохраненного круга для восстановления.');
-    return;
-  }
-
-  winnerMessage.value = null;
-  currentNightRoleIndex.value = 0;
-  multiPlayersSelection.value = { firstSelection: '', secondSelection: '' };
-  isNightActionModalVisible.value = false;
-  isNightLogModalVisible.value = false;
-  toast.success('Игроки восстановлены из прошлого круга.');
 };
 
 const getRoleText = (roleKey: string) => {
@@ -378,13 +363,6 @@ useHead({
                   />
                 </div>
 
-                <button
-                  v-if="canRestoreLastCircle"
-                  class="text-sm font-medium text-neutral-400 hover:text-blue-200 transition-colors self-center"
-                  @click="restoreLastCirclePlayers"
-                >
-                  Восстановить игроков из прошлого круга
-                </button>
               </div>
             </div>
           </ClientOnly>
@@ -411,13 +389,6 @@ useHead({
                 @click="isNightLogModalVisible = true"
               />
             </div>
-            <button
-              v-if="canRestoreLastCircle"
-              class="text-sm font-medium text-neutral-400 hover:text-yellow-200 transition-colors"
-              @click="restoreLastCirclePlayers"
-            >
-              Восстановить игроков из прошлого круга
-            </button>
           </div>
         </template>
 

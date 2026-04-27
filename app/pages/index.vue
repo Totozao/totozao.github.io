@@ -6,6 +6,11 @@ const playersInfo = usePlayersInfo();
 const toast = useToast();
 
 const isAddPlayerModalVisible = ref<boolean>(false);
+const playerNames = computed(() => new Set(playersInfo.players.map((player) => player.name)));
+const restorableLastCirclePlayers = computed(() => {
+  return playersInfo.lastCirclePlayers.filter((player) => !playerNames.value.has(player.name));
+});
+
 const handleAddPlayer = (playerName: string) => {
   try {
     playersInfo.addPlayer(playerName);
@@ -17,6 +22,29 @@ const handleAddPlayer = (playerName: string) => {
   }
 };
 
+const restorePlayerFromLastCircle = (playerName: string) => {
+  try {
+    playersInfo.addPlayer(playerName);
+    toast.success(`Игрок ${playerName} восстановлен`);
+  } catch (error: unknown) {
+    toast.error(error instanceof Error ? error.message : "Ошибка при восстановлении игрока");
+  }
+};
+
+const restoreAllLastCirclePlayers = () => {
+  const playersToRestore = restorableLastCirclePlayers.value;
+
+  if (playersToRestore.length === 0) {
+    toast.info("Все игроки прошлого круга уже добавлены");
+    return;
+  }
+
+  playersToRestore.forEach((player) => {
+    playersInfo.addPlayer(player.name);
+  });
+  toast.success(`Восстановлено игроков: ${playersToRestore.length}`);
+};
+
 const handleStartGame = () => {
   if (playersInfo.players.length < 6) {
     toast.warning("Недостаточно игроков (минимум 6)");
@@ -25,7 +53,7 @@ const handleStartGame = () => {
     playersInfo.activePlayers = [...playersInfo.players];
     playersInfo.currentNight = 0;
     playersInfo.nightsLogs = [];
-    playersInfo.lastCirclePlayers = [...playersInfo.players];
+    playersInfo.saveLastCirclePlayers(playersInfo.players);
     playersInfo.totalSectariansCreated = 0;
     playersInfo.currentGameStep = "night";
     playersInfo.resetActivePlayers();
@@ -83,6 +111,48 @@ useHead({
               Пока нет ни одного игрока. Добавьте участников чтобы начать игру.
             </div>
           </ClientOnly>
+        </div>
+      </div>
+
+      <div
+        v-if="playersInfo.lastCirclePlayers.length > 0"
+        class="w-full bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-xl backdrop-blur-sm relative overflow-hidden"
+      >
+        <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-cyan-500/5 pointer-events-none"></div>
+        <div class="flex flex-col gap-5 relative z-10">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-neutral-800 pb-4">
+            <div>
+              <h2 class="text-xl font-bold text-neutral-200">Прошлый круг</h2>
+              <p class="text-sm text-neutral-500">Добавьте игроков из сохраненного круга в список настройки.</p>
+            </div>
+            <SharedUiButton
+              text="Добавить всех"
+              class="!py-2 !px-4 text-sm"
+              :disabled="restorableLastCirclePlayers.length === 0"
+              @click="restoreAllLastCirclePlayers"
+            />
+          </div>
+
+          <div
+            v-if="restorableLastCirclePlayers.length > 0"
+            class="grid grid-cols-1 sm:grid-cols-2 gap-3"
+          >
+            <div
+              v-for="player in restorableLastCirclePlayers"
+              :key="player.name"
+              class="flex items-center justify-between gap-3 rounded-xl border border-neutral-800 bg-neutral-950/60 p-3"
+            >
+              <span class="font-medium text-neutral-200">{{ player.name }}</span>
+              <SharedUiButton
+                text="+"
+                class="!py-1 !px-3 text-sm"
+                @click="restorePlayerFromLastCircle(player.name)"
+              />
+            </div>
+          </div>
+          <div v-else class="rounded-xl border border-neutral-800 bg-neutral-950/60 p-4 text-center text-sm text-neutral-500">
+            Все игроки прошлого круга уже в списке.
+          </div>
         </div>
       </div>
 

@@ -42,6 +42,20 @@ const filteredFirstCircleOrder = computed(() => {
   );
 });
 
+const currentStepIndex = computed(() => {
+  const index = filteredFirstCircleOrder.value.findIndex((role) => role.name === currentRoleName.value);
+  return index === -1 ? 0 : index;
+});
+
+const playerOptions = computed(() => {
+  return playersInfo.activePlayers.map((player) => ({ label: player.name, value: player.name }));
+});
+
+const isEmergencyAvailable = computed(() => {
+  return playersInfo.activeRoles.includes(currentRoleName.value)
+    && !currentRoleName.value.toLowerCase().includes('zero');
+});
+
 const onNextRole = () => {
   const nextRoleName = handleNextRole(currentRoleName.value, filteredFirstCircleOrder.value);
   
@@ -86,9 +100,30 @@ const getRoleText = (roleKey: string) => {
   return texts[roleKey] || "Сделайте выбор";
 };
 
+const getRoleTitle = (roleKey: string) => {
+  const titles: Record<string, string> = {
+    detectiveZero: "Детектив",
+    patrolZero: "Патрульный",
+    journalistZero: "Журналист",
+    "lucky-guyZero": "Счастливчик",
+    mafia: "Мафия",
+    don: "Дон",
+    sectarian: "Сектант",
+    detective: "Детектив",
+    journalist: "Журналист",
+    patrol: "Патрульный",
+    doctor: "Доктор",
+  };
+  return titles[roleKey] || "Первый круг";
+};
+
 const isDoubleAction = computed(() => {
   const doubleActionRoles = ['mafia', 'don', 'sectarian', 'journalist', 'patrol', 'doctor'];
   return doubleActionRoles.includes(currentRoleName.value);
+});
+
+const isDoubleActionReady = computed(() => {
+  return Boolean(multiPlayersSelection.value.firstSelection && multiPlayersSelection.value.secondSelection);
 });
 
 useHead({
@@ -111,44 +146,45 @@ useHead({
 
       <ClientOnly>
         <div class="w-full bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-xl backdrop-blur-sm relative overflow-hidden">
-          <div class="absolute inset-0 bg-gradient-to-br from-red-500/5 to-purple-500/5 pointer-events-none"></div>
+          <div class="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-indigo-500/5 to-purple-500/10 pointer-events-none"></div>
           
-          <div class="flex flex-col items-center gap-6 relative z-10">
-            <h2 class="text-xl font-semibold text-center text-neutral-200">
-              {{ getRoleText(currentRoleName) }}
-            </h2>
-
-            <div class="w-full flex flex-col gap-4" v-if="isDoubleAction">
-              <SharedUiDropDown
-                v-model="multiPlayersSelection.firstSelection"
-                :label="`Игрок 1`"
-                :options="playersInfo.activePlayers.map(p => ({ label: p.name, value: p.name }))"
-              />
-              <SharedUiDropDown
-                v-model="multiPlayersSelection.secondSelection"
-                label="Игрок 2 (Цель)"
-                :options="playersInfo.activePlayers.map(p => ({ label: p.name, value: p.name }))"
-              />
-              <SharedUiButton
-                class="mt-2 w-full"
-                text="Продолжить"
-                @click="executeAction(currentRoleName, multiPlayersSelection.firstSelection, multiPlayersSelection.secondSelection)"
-              />
-
-              <div class="pt-6 border-t border-neutral-800 flex flex-col items-center gap-3 w-full"
-                v-if="playersInfo.activeRoles.includes(currentRoleName) && !currentRoleName.toLowerCase().includes('zero')"
-              >
-                <h3 class="text-sm font-medium text-neutral-400 uppercase tracking-wider">Экстренная функция</h3>
-                <SharedUiButton
-                  class="w-full sm:w-auto min-w-[150px] !bg-neutral-800 !text-neutral-300 hover:!bg-neutral-700"
-                  text="В секте"
-                  @click="onNextRole"
-                />
+          <div class="flex flex-col gap-6 relative z-10">
+            <div class="flex items-start justify-between gap-4">
+              <div class="space-y-2">
+                <p class="text-xs uppercase tracking-[0.3em] text-blue-300/70">Первый круг</p>
+                <h2 class="text-2xl font-bold text-neutral-100">
+                  {{ getRoleTitle(currentRoleName) }}
+                </h2>
+                <p class="text-neutral-400">
+                  {{ getRoleText(currentRoleName) }}
+                </p>
               </div>
+              <span class="rounded-full border border-blue-400/20 bg-blue-400/10 px-3 py-1 text-sm font-semibold text-blue-200">
+                {{ currentStepIndex + 1 }}/{{ Math.max(filteredFirstCircleOrder.length, 1) }}
+              </span>
             </div>
 
-            <template v-else>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+            <div class="rounded-2xl border border-blue-400/10 bg-blue-400/5 p-4">
+              <div class="w-full flex flex-col gap-4" v-if="isDoubleAction">
+                <SharedUiDropDown
+                  v-model="multiPlayersSelection.firstSelection"
+                  :label="`Игрок 1`"
+                  :options="playerOptions"
+                />
+                <SharedUiDropDown
+                  v-model="multiPlayersSelection.secondSelection"
+                  label="Игрок 2 (Цель)"
+                  :options="playerOptions"
+                />
+                <SharedUiButton
+                  class="mt-2 w-full"
+                  text="Продолжить"
+                  :disabled="!isDoubleActionReady"
+                  @click="executeAction(currentRoleName, multiPlayersSelection.firstSelection, multiPlayersSelection.secondSelection)"
+                />
+              </div>
+
+              <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
                 <SharedUiButton
                   v-for="player in playersInfo.activePlayers"
                   :key="player.name"
@@ -157,18 +193,22 @@ useHead({
                   @click="executeAction(currentRoleName, player.name)"
                 />
               </div>
+            </div>
 
-              <div class="pt-6 border-t border-neutral-800 flex flex-col items-center gap-3 w-full"
-                v-if="playersInfo.activeRoles.includes(currentRoleName) && !currentRoleName.toLowerCase().includes('zero')"
-              >
-                <h3 class="text-sm font-medium text-neutral-400 uppercase tracking-wider">Экстренная функция</h3>
-                <SharedUiButton
-                  class="w-full sm:w-auto min-w-[150px] !bg-neutral-800 !text-neutral-300 hover:!bg-neutral-700"
-                  text="В секте"
-                  @click="onNextRole"
-                />
+            <div
+              v-if="isEmergencyAvailable"
+              class="pt-4 border-t border-neutral-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full"
+            >
+              <div>
+                <h3 class="text-sm font-medium text-neutral-300 uppercase tracking-wider">Экстренная функция</h3>
+                <p class="text-sm text-neutral-500">Пропустить действие, если игрок уже в секте.</p>
               </div>
-            </template>
+              <SharedUiButton
+                class="w-full sm:w-auto min-w-[150px] !bg-neutral-800 !text-neutral-300 hover:!bg-neutral-700"
+                text="В секте"
+                @click="onNextRole"
+              />
+            </div>
           </div>
         </div>
       </ClientOnly>
