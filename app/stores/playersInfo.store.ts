@@ -1,13 +1,9 @@
-import {
-  type INight,
-  type INightAction,
-  type IPlayer,
-  type IRole,
-} from "~/models/playerInfo";
+import type { INight, INightAction, IPlayer, IRole } from "~/models/playerInfo";
 import rolesData from "@/assets/data/roles.json";
 
 // Explicitly type the roles object
-const roles: Record<string, any> = rolesData;
+const roles: Record<string, IRole> = rolesData;
+const clonePlayers = (players: IPlayer[]) => players.map((player) => ({ ...player }));
 
 export const usePlayersInfo = defineStore(
   "playersInfo",
@@ -36,15 +32,27 @@ export const usePlayersInfo = defineStore(
     const currentRole = ref<string | undefined>(undefined);
 
     const setActiveRoles = () => {
-      let roleNames = Object.keys(roles);
-      let excludingRoles = ["lucky-guy", "civilian"];
+      const roleNames = Object.keys(roles);
+      const excludingRoles = ["lucky-guy", "civilian"];
       activeRoles.value = roleNames.filter(
         (role) => !excludingRoles.includes(role),
       );
     };
 
+    const getNightActions = (nightIndex: number) => {
+      return nightsLogs.value.find((night) => night.indexOfNight === nightIndex)?.actions || null;
+    };
+
     const getCurrentNightActions = () => {
-      return nightsLogs.value[currentNight.value]?.actions || null;
+      return getNightActions(currentNight.value);
+    };
+
+    const getLastNightActions = () => {
+      const latestNight = [...nightsLogs.value]
+        .filter((night) => night.indexOfNight <= currentNight.value)
+        .sort((a, b) => b.indexOfNight - a.indexOfNight)[0];
+
+      return latestNight?.actions || null;
     };
 
     const fillMissingRoles = () => {
@@ -56,10 +64,13 @@ export const usePlayersInfo = defineStore(
     };
 
     const startGame = () => {
+      currentNight.value = 0;
       currentGameStep.value = "day";
       clearDeadPlayers();
       fillMissingRoles();
       nightsLogs.value = [];
+      lastCirclePlayers.value = [];
+      totalSectariansCreated.value = 0;
     };
 
     const handleNextRole = (roleList: string[]) => {
@@ -104,17 +115,21 @@ export const usePlayersInfo = defineStore(
       }
     };
 
-    const isRoleInactive = (changingRole: IRole) => {
+    const isRoleInactive = (changingRole: Pick<IRole, "value">) => {
       return inactiveRoles.value[changingRole.value];
     };
 
     const resetActivePlayers = () => {
-      activePlayers.value = [...players.value];
+      activePlayers.value = clonePlayers(players.value);
     };
 
     const createNightAction = (action: INightAction, nightIndex: number) => {
-      if (nightsLogs.value[nightIndex]) {
-        nightsLogs.value[nightIndex].actions.push(action);
+      const existingNightLog = nightsLogs.value.find(
+        (night) => night.indexOfNight === nightIndex,
+      );
+
+      if (existingNightLog) {
+        existingNightLog.actions.push(action);
       } else {
         nightsLogs.value.push({
           indexOfNight: nightIndex,
@@ -154,8 +169,28 @@ export const usePlayersInfo = defineStore(
       );
     };
 
-    const saveLastCirclePlayers = () => {
-      lastCirclePlayers.value = [...players.value];
+    const saveLastCirclePlayers = (playersToSave: IPlayer[] = activePlayers.value) => {
+      lastCirclePlayers.value = clonePlayers(playersToSave);
+    };
+
+    const restoreLastCirclePlayers = () => {
+      if (lastCirclePlayers.value.length === 0) {
+        return false;
+      }
+
+      const restoredPlayers = clonePlayers(lastCirclePlayers.value);
+      const restoredByName = new Map(restoredPlayers.map((player) => [player.name, player]));
+
+      activePlayers.value = restoredPlayers;
+      players.value = players.value.map((player) => {
+        const restoredPlayer = restoredByName.get(player.name);
+        return restoredPlayer ? { ...restoredPlayer } : player;
+      });
+      totalSectariansCreated.value = activePlayers.value.filter(
+        (player) => player.role === "sectarian",
+      ).length;
+
+      return true;
     };
 
     const resetStore = () => {
@@ -182,7 +217,10 @@ export const usePlayersInfo = defineStore(
       activeRoles,
       currentNight,
       fillMissingRoles,
+      handleNextRole,
+      getNightActions,
       getCurrentNightActions,
+      getLastNightActions,
       startGame,
       getPlayersWithRole,
       setActiveRoles,
@@ -196,6 +234,7 @@ export const usePlayersInfo = defineStore(
       addPlayer,
       removePlayer,
       saveLastCirclePlayers,
+      restoreLastCirclePlayers,
       resetStore,
       getPlayerRole,
     };

@@ -11,9 +11,9 @@ const handleAddPlayer = (playerName: string) => {
     playersInfo.addPlayer(playerName);
     isAddPlayerModalVisible.value = false;
     toast.success(`Игрок ${playerName} успешно добавлен`);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(error);
-    toast.error(error.message || "Ошибка при добавлении игрока");
+    toast.error(error instanceof Error ? error.message : "Ошибка при добавлении игрока");
   }
 };
 
@@ -23,6 +23,10 @@ const handleStartGame = () => {
     return;
   } else {
     playersInfo.activePlayers = [...playersInfo.players];
+    playersInfo.currentNight = 0;
+    playersInfo.nightsLogs = [];
+    playersInfo.lastCirclePlayers = [];
+    playersInfo.totalSectariansCreated = 0;
     playersInfo.currentGameStep = "night";
     playersInfo.resetActivePlayers();
     playersInfo.setActiveRoles();

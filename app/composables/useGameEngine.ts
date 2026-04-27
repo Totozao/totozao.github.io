@@ -2,6 +2,11 @@ import { usePlayersInfo } from '~/stores/playersInfo.store';
 import { useToast } from '~/composables/useToast';
 import { useRouter } from 'vue-router';
 
+type FirstCircleStep = {
+  name: string;
+  role: string;
+};
+
 export const useGameEngine = () => {
   const playersInfo = usePlayersInfo();
   const toast = useToast();
@@ -12,7 +17,7 @@ export const useGameEngine = () => {
     teamTwo: ['mafia', 'don', 'sectarian'],
   };
 
-  const handleNextRole = (currentRoleName: string, filteredFirstCircleOrder: any[]) => {
+  const handleNextRole = (currentRoleName: string, filteredFirstCircleOrder: FirstCircleStep[]) => {
     const currentRoleIndex = filteredFirstCircleOrder.findIndex(
       (role) => role.name === currentRoleName
     );
@@ -22,6 +27,7 @@ export const useGameEngine = () => {
       router.replace({ path: '/first-circle', query: { role: nextRole.name } });
       return nextRole.name;
     } else {
+      playersInfo.currentNight = 1;
       playersInfo.currentGameStep = 'day';
       playersInfo.clearDeadPlayers();
       playersInfo.fillMissingRoles();
@@ -45,7 +51,7 @@ export const useGameEngine = () => {
     },
     mafia: (playerName: string, targetPlayerName: string) => {
       playersInfo.setPlayerRole(playerName, 'mafia');
-      const targetPlayer = playersInfo.players.find((player) => player.name === targetPlayerName);
+      const targetPlayer = playersInfo.activePlayers.find((player) => player.name === targetPlayerName);
       if (targetPlayer) targetPlayer.lives = 0;
       
       playersInfo.createNightAction(
@@ -89,7 +95,7 @@ export const useGameEngine = () => {
       }
 
       playersInfo.createNightAction(
-        { affectedPlayer: targetPlayerName || '', actionPlayer: playerName, action: 'check' },
+        { affectedPlayer: targetPlayerName || '', actionPlayer: playerName, action: targetAdded ? 'recruit' : 'check' },
         playersInfo.currentNight
       );
     },
@@ -112,6 +118,12 @@ export const useGameEngine = () => {
     journalist: (targetOneName: string, targetTwoName: string) => {
       const targetOneRole = playersInfo.getPlayerRole(targetOneName);
       const targetTwoRole = playersInfo.getPlayerRole(targetTwoName);
+
+      const journalistPlayer = playersInfo.activePlayers.find((player) => player.role === 'journalist')?.name || 'Журналист';
+      playersInfo.createNightAction(
+        { affectedPlayer: `${targetOneName} и ${targetTwoName}`, actionPlayer: journalistPlayer, action: 'compare' },
+        playersInfo.currentNight
+      );
       
       if (sidesOfJournalistCheck.teamOne.includes(targetOneRole!)) {
         if (sidesOfJournalistCheck.teamOne.includes(targetTwoRole!)) {
@@ -133,20 +145,25 @@ export const useGameEngine = () => {
       const positiveRoles = ['sectarian', 'don', 'mafia'];
       
       playersInfo.createNightAction(
-        { affectedPlayer: playerName, actionPlayer: 'detective', action: 'check' },
+        { affectedPlayer: targetPlayerName, actionPlayer: playerName, action: 'check' },
         playersInfo.currentNight
       );
 
       if (positiveRoles.includes(affectedPlayerRole!)) {
-        toast.error(`${playerName} проверил: хуевый`, 'Патрульный', 5000);
+        toast.error(`${targetPlayerName} проверен: мафия/сектант`, 'Патрульный', 5000);
       } else {
-        toast.success(`${playerName} проверил: не хуевый`, 'Патрульный', 5000);
+        toast.success(`${targetPlayerName} проверен: мирный`, 'Патрульный', 5000);
       }
     },
     doctor: (playerName: string, targetPlayerName: string) => {
       playersInfo.setPlayerRole(playerName, 'doctor');
-      const targetPlayer = playersInfo.players.find((player) => player.name === targetPlayerName);
+      const targetPlayer = playersInfo.activePlayers.find((player) => player.name === targetPlayerName);
       if (targetPlayer) targetPlayer.lives += 1;
+
+      playersInfo.createNightAction(
+        { affectedPlayer: targetPlayerName, actionPlayer: playerName, action: 'heal' },
+        playersInfo.currentNight
+      );
       toast.success(`${targetPlayerName} вылечен`, 'Доктор', 4000);
     },
   };

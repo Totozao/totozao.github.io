@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { usePlayersInfo } from '~/stores/playersInfo.store';
 import { useGameEngine } from '~/composables/useGameEngine';
 import { useToast } from '~/composables/useToast';
@@ -9,15 +9,17 @@ const { roleActions } = useGameEngine();
 const toast = useToast();
 
 const nightRoleOrder = ['mafia', 'don', 'sectarian', 'detective', 'patrol', 'doctor', 'journalist'];
+const isNightActionModalVisible = ref(false);
+const isNightLogModalVisible = ref(false);
 
 const currentActiveRolesForNight = computed(() => {
   return nightRoleOrder.filter(r => {
-    if (!playersInfo.activeRoles.includes(r) || playersInfo.isRoleInactive({ value: r } as any)) {
+    if (!playersInfo.activeRoles.includes(r) || playersInfo.isRoleInactive({ value: r })) {
       return false;
     }
     
     if (r === 'patrol') {
-      const detectives = playersInfo.players.filter(p => p.role === 'detective');
+      const detectives = playersInfo.activePlayers.filter(p => p.role === 'detective');
       const isDetectiveDeadOrGone = detectives.length === 0 || detectives.every(p => p.lives <= 0);
       return isDetectiveDeadOrGone;
     }
@@ -31,9 +33,12 @@ const currentNightRole = computed(() => currentActiveRolesForNight.value[current
 
 const isNightPhase = computed(() => playersInfo.currentGameStep === 'night');
 const isDayPhase = computed(() => playersInfo.currentGameStep === 'day');
+const playerOptions = computed(() => playersInfo.activePlayers.map(p => ({ label: p.name, value: p.name })));
+const lastNightActions = computed(() => playersInfo.getLastNightActions() || []);
+const canRestoreLastCircle = computed(() => playersInfo.lastCirclePlayers.length > 0);
 
 const isRoleHolderDead = (role: string) => {
-  const holders = playersInfo.players.filter(p => p.role === role);
+  const holders = playersInfo.activePlayers.filter(p => p.role === role);
   if (holders.length === 0) return true;
   return holders.every(p => p.lives <= 0);
 };
@@ -45,6 +50,39 @@ const multiPlayersSelection = ref({
 });
 
 const isDoubleTarget = computed(() => currentNightRole.value === 'journalist');
+const isNightActionReady = computed(() => {
+  if (!currentNightRole.value) return false;
+  if (!isDoubleTarget.value) return true;
+  return Boolean(
+    multiPlayersSelection.value.firstSelection
+    && multiPlayersSelection.value.secondSelection
+    && multiPlayersSelection.value.firstSelection !== multiPlayersSelection.value.secondSelection,
+  );
+});
+
+const getRoleTitle = (roleKey?: string) => {
+  const titles: Record<string, string> = {
+    mafia: 'Мафия',
+    don: 'Дон',
+    sectarian: 'Сектант',
+    detective: 'Детектив',
+    journalist: 'Журналист',
+    patrol: 'Патрульный',
+    doctor: 'Доктор',
+  };
+  return roleKey ? titles[roleKey] || roleKey : 'Ночное действие';
+};
+
+const finishNight = () => {
+  playersInfo.currentNight++;
+  checkWinConditions();
+  isNightActionModalVisible.value = false;
+  
+  if (playersInfo.currentGameStep !== 'night') return; // game over
+  
+  playersInfo.currentGameStep = 'day';
+  currentNightRoleIndex.value = 0;
+};
 
 const nextNightRole = () => {
   multiPlayersSelection.value = { firstSelection: '', secondSelection: '' };
@@ -52,12 +90,7 @@ const nextNightRole = () => {
   if (currentNightRoleIndex.value < currentActiveRolesForNight.value.length - 1) {
     currentNightRoleIndex.value++;
   } else {
-    // End of night
-    playersInfo.currentNight++;
-    checkWinConditions();
-    if (playersInfo.currentGameStep !== 'night') return; // game over
-    playersInfo.currentGameStep = 'day';
-    currentNightRoleIndex.value = 0;
+    finishNight();
   }
 };
 
@@ -69,24 +102,53 @@ const executeNightAction = (target1?: string, target2?: string) => {
     return;
   }
 
-  const actor = playersInfo.players.find(p => p.role === role && p.lives > 0)?.name || 'Неизвестный';
-  const action = roleActions[role as keyof typeof roleActions];
+  const actor = playersInfo.activePlayers.find(p => p.role === role && p.lives > 0)?.name || 'Неизвестный';
 
-  if (action) {
-    if (role === 'journalist') {
-      if (target1 && target2) (action as any)(target1, target2);
-    } else if (role === 'detective') {
-      if (target1) (action as any)(target1);
-    } else {
-      if (target1) (action as any)(actor, target1);
-    }
+  if (role === 'journalist' && target1 && target2) {
+    roleActions.journalist(target1, target2);
+  } else if (role === 'detective' && target1) {
+    roleActions.detective(target1);
+  } else if (role === 'mafia' && target1) {
+    roleActions.mafia(actor, target1);
+  } else if (role === 'don' && target1) {
+    roleActions.don(actor, target1);
+  } else if (role === 'sectarian' && target1) {
+    roleActions.sectarian(actor, target1);
+  } else if (role === 'patrol' && target1) {
+    roleActions.patrol(actor, target1);
+  } else if (role === 'doctor' && target1) {
+    roleActions.doctor(actor, target1);
   }
 
   nextNightRole();
 };
 
 const skipNightAction = () => {
+  const role = currentNightRole.value;
+  const actor = playersInfo.activePlayers.find(p => p.role === role && p.lives > 0)?.name || getRoleTitle(role);
+
+  if (role) {
+    playersInfo.createNightAction(
+      { affectedPlayer: '', actionPlayer: actor, action: 'skip' },
+      playersInfo.currentNight,
+    );
+  }
+
   nextNightRole();
+};
+
+const restoreLastCirclePlayers = () => {
+  if (!playersInfo.restoreLastCirclePlayers()) {
+    toast.warning('Нет сохраненного круга для восстановления.');
+    return;
+  }
+
+  winnerMessage.value = null;
+  currentNightRoleIndex.value = 0;
+  multiPlayersSelection.value = { firstSelection: '', secondSelection: '' };
+  isNightActionModalVisible.value = false;
+  isNightLogModalVisible.value = false;
+  toast.success('Игроки восстановлены из прошлого круга.');
 };
 
 const getRoleText = (roleKey: string) => {
@@ -104,7 +166,6 @@ const getRoleText = (roleKey: string) => {
 
 // --- DAY PHASE (VOTING) ---
 const votes = ref<Record<string, number>>({});
-const votingForPlayer = ref<string>('');
 
 const startVoting = () => {
   playersInfo.currentGameStep = 'voting';
@@ -130,7 +191,7 @@ const fortuneWheelActivePlayer = ref('');
 
 const finishVotingPhase = (kickedPlayer?: string, wasSavedByFortune: boolean = false) => {
   if (kickedPlayer && !wasSavedByFortune) {
-    const p = playersInfo.players.find(p => p.name === kickedPlayer);
+    const p = playersInfo.activePlayers.find(p => p.name === kickedPlayer);
     if (p) {
       p.lives = 0;
       toast.error(`Игрок ${kickedPlayer} изгнан голосованием!`);
@@ -144,6 +205,8 @@ const finishVotingPhase = (kickedPlayer?: string, wasSavedByFortune: boolean = f
   if (playersInfo.currentGameStep !== 'day' && playersInfo.currentGameStep !== 'voting') {
     // game over handled in checkWinConditions
   } else {
+    playersInfo.saveLastCirclePlayers(playersInfo.activePlayers);
+    currentNightRoleIndex.value = 0;
     playersInfo.currentGameStep = 'night';
   }
 };
@@ -283,49 +346,45 @@ useHead({
 
           <ClientOnly>
             <div class="w-full bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-xl backdrop-blur-sm relative overflow-hidden">
-              <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 pointer-events-none"></div>
+              <div class="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-indigo-500/5 to-purple-500/10 pointer-events-none"></div>
               
-              <div class="flex flex-col items-center gap-6 relative z-10">
-                <h2 class="text-xl font-semibold text-center text-neutral-200">
-                  {{ currentNightRole ? getRoleText(currentNightRole) : '' }}
-                </h2>
-
-                <div class="w-full flex flex-col gap-4" v-if="isDoubleTarget">
-                  <SharedUiDropDown
-                    v-model="multiPlayersSelection.firstSelection"
-                    label="Игрок 1"
-                    :options="playersInfo.activePlayers.map(p => ({ label: p.name, value: p.name }))"
-                  />
-                  <SharedUiDropDown
-                    v-model="multiPlayersSelection.secondSelection"
-                    label="Игрок 2"
-                    :options="playersInfo.activePlayers.map(p => ({ label: p.name, value: p.name }))"
-                  />
-                  <SharedUiButton
-                    class="mt-2 w-full"
-                    text="Продолжить"
-                    @click="executeNightAction(multiPlayersSelection.firstSelection, multiPlayersSelection.secondSelection)"
-                    :disabled="!multiPlayersSelection.firstSelection || !multiPlayersSelection.secondSelection"
-                  />
+              <div class="flex flex-col gap-6 relative z-10">
+                <div class="flex items-start justify-between gap-4">
+                  <div class="space-y-2">
+                    <p class="text-xs uppercase tracking-[0.3em] text-blue-300/70">Текущий ход</p>
+                    <h2 class="text-2xl font-bold text-neutral-100">
+                      {{ currentNightRole ? getRoleTitle(currentNightRole) : 'Ночь без действий' }}
+                    </h2>
+                    <p class="text-neutral-400">
+                      {{ currentNightRole ? getRoleText(currentNightRole) : 'Нет активных ролей для этой ночи.' }}
+                    </p>
+                  </div>
+                  <span class="rounded-full border border-blue-400/20 bg-blue-400/10 px-3 py-1 text-sm font-semibold text-blue-200">
+                    {{ currentNightRoleIndex + 1 }}/{{ Math.max(currentActiveRolesForNight.length, 1) }}
+                  </span>
                 </div>
-                
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full" v-else>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <SharedUiButton
-                    v-for="player in playersInfo.activePlayers"
-                    :key="player.name"
-                    :text="player.name"
-                    class="w-full"
-                    @click="executeNightAction(player.name)"
+                    class="w-full !bg-gradient-to-r !from-blue-600 !to-indigo-600 border-none shadow-[0_0_24px_rgba(37,99,235,0.25)]"
+                    text="Открыть действие"
+                    :disabled="!currentNightRole"
+                    @click="isNightActionModalVisible = true"
+                  />
+                  <SharedUiButton
+                    class="w-full !bg-neutral-800 !text-neutral-300 hover:!bg-neutral-700"
+                    text="Завершить ночь"
+                    @click="finishNight"
                   />
                 </div>
 
-                <div class="pt-4 border-t border-neutral-800 w-full flex justify-center">
-                  <SharedUiButton
-                    class="!bg-neutral-800 !text-neutral-400 hover:!bg-neutral-700"
-                    text="Пропустить действие"
-                    @click="skipNightAction"
-                  />
-                </div>
+                <button
+                  v-if="canRestoreLastCircle"
+                  class="text-sm font-medium text-neutral-400 hover:text-blue-200 transition-colors self-center"
+                  @click="restoreLastCirclePlayers"
+                >
+                  Восстановить игроков из прошлого круга
+                </button>
               </div>
             </div>
           </ClientOnly>
@@ -343,16 +402,22 @@ useHead({
           <div class="w-full bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-xl text-center flex flex-col gap-4">
             <h2 class="text-xl font-bold text-neutral-200">Дневное обсуждение</h2>
             <p class="text-neutral-400">Живые игроки: {{ playersInfo.activePlayers.length }}</p>
-            <SharedUiButton text="Перейти к голосованию" @click="startVoting" class="mt-4" />
-          </div>
-
-          <div class="w-full flex flex-col gap-4">
-            <h3 class="text-lg font-semibold text-neutral-300">Лог прошлой ночи</h3>
-            <GameNightLogCard
-              v-for="(action, i) of playersInfo.getCurrentNightActions() || []"
-              :key="i"
-              :action="action"
-            />
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+              <SharedUiButton text="Перейти к голосованию" @click="startVoting" class="w-full" />
+              <SharedUiButton
+                text="Лог прошлой ночи"
+                class="w-full !bg-neutral-800 !text-neutral-300 hover:!bg-neutral-700"
+                :disabled="lastNightActions.length === 0"
+                @click="isNightLogModalVisible = true"
+              />
+            </div>
+            <button
+              v-if="canRestoreLastCircle"
+              class="text-sm font-medium text-neutral-400 hover:text-yellow-200 transition-colors"
+              @click="restoreLastCirclePlayers"
+            >
+              Восстановить игроков из прошлого круга
+            </button>
           </div>
         </template>
 
@@ -398,6 +463,103 @@ useHead({
         </template>
 
       </template>
+
+      <SharedUiModal :isModalVisible="isNightActionModalVisible">
+        <div class="relative z-10 flex flex-col gap-6">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-xs uppercase tracking-[0.3em] text-blue-300/70">Ночное действие</p>
+              <h2 class="mt-2 text-2xl font-bold text-neutral-100">{{ getRoleTitle(currentNightRole) }}</h2>
+              <p class="mt-2 text-sm text-neutral-400">{{ currentNightRole ? getRoleText(currentNightRole) : 'Нет доступных действий.' }}</p>
+            </div>
+            <button
+              class="rounded-full border border-neutral-700 bg-neutral-800/80 px-3 py-1 text-sm text-neutral-300 hover:border-blue-400/60 hover:text-blue-100 transition-colors"
+              @click="isNightActionModalVisible = false"
+            >
+              Закрыть
+            </button>
+          </div>
+
+          <div class="rounded-2xl border border-blue-400/10 bg-blue-400/5 p-4">
+            <div class="w-full flex flex-col gap-4" v-if="isDoubleTarget">
+              <SharedUiDropDown
+                v-model="multiPlayersSelection.firstSelection"
+                label="Игрок 1"
+                :options="playerOptions"
+              />
+              <SharedUiDropDown
+                v-model="multiPlayersSelection.secondSelection"
+                label="Игрок 2"
+                :options="playerOptions"
+              />
+              <p
+                v-if="multiPlayersSelection.firstSelection && multiPlayersSelection.firstSelection === multiPlayersSelection.secondSelection"
+                class="text-sm text-amber-300"
+              >
+                Выберите двух разных игроков.
+              </p>
+              <SharedUiButton
+                class="mt-2 w-full"
+                text="Продолжить"
+                @click="executeNightAction(multiPlayersSelection.firstSelection, multiPlayersSelection.secondSelection)"
+                :disabled="!isNightActionReady"
+              />
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full" v-else>
+              <SharedUiButton
+                v-for="player in playersInfo.activePlayers"
+                :key="player.name"
+                :text="player.name"
+                class="w-full"
+                @click="executeNightAction(player.name)"
+              />
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-neutral-800 flex flex-col sm:flex-row gap-3">
+            <SharedUiButton
+              class="w-full !bg-neutral-800 !text-neutral-400 hover:!bg-neutral-700"
+              text="Пропустить действие"
+              @click="skipNightAction"
+            />
+            <SharedUiButton
+              class="w-full !bg-neutral-800 !text-neutral-400 hover:!bg-neutral-700"
+              text="Закрыть"
+              @click="isNightActionModalVisible = false"
+            />
+          </div>
+        </div>
+      </SharedUiModal>
+
+      <SharedUiModal :isModalVisible="isNightLogModalVisible">
+        <div class="relative z-10 flex flex-col gap-5">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-xs uppercase tracking-[0.3em] text-purple-300/70">История</p>
+              <h2 class="mt-2 text-2xl font-bold text-neutral-100">Лог прошлой ночи</h2>
+              <p class="mt-2 text-sm text-neutral-400">Все действия, которые были записаны в последнюю ночь.</p>
+            </div>
+            <button
+              class="rounded-full border border-neutral-700 bg-neutral-800/80 px-3 py-1 text-sm text-neutral-300 hover:border-purple-400/60 hover:text-purple-100 transition-colors"
+              @click="isNightLogModalVisible = false"
+            >
+              Закрыть
+            </button>
+          </div>
+
+          <div v-if="lastNightActions.length" class="flex flex-col gap-3">
+            <GameNightLogCard
+              v-for="(action, i) of lastNightActions"
+              :key="`${action.action}-${i}`"
+              :action="action"
+            />
+          </div>
+          <div v-else class="rounded-2xl border border-neutral-800 bg-neutral-900/80 p-5 text-center text-neutral-400">
+            Лог пуст.
+          </div>
+        </div>
+      </SharedUiModal>
     </div>
   </NuxtLayout>
 </template>
