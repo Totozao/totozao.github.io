@@ -95,7 +95,11 @@ export const useGameEngine = () => {
       }
 
       playersInfo.createNightAction(
-        { affectedPlayer: targetPlayerName || '', actionPlayer: playerName, action: targetAdded ? 'recruit' : 'check' },
+        {
+          affectedPlayer: targetPlayerName || '',
+          actionPlayer: playerName,
+          action: targetPlayerName ? (targetAdded ? 'recruit' : 'check') : 'skip',
+        },
         playersInfo.currentNight
       );
     },

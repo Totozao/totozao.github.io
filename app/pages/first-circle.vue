@@ -113,7 +113,7 @@ const executeAction = (actionName: string, arg1: string, arg2?: string) => {
     roleActions.mafia(arg1, arg2);
   } else if (actionName === 'don' && arg2 !== undefined) {
     roleActions.don(arg1, arg2);
-  } else if (actionName === 'sectarian' && arg2 !== undefined) {
+  } else if (actionName === 'sectarian') {
     roleActions.sectarian(arg1, arg2);
   } else if (actionName === 'journalist' && arg2 !== undefined) {
     roleActions.journalist(arg1, arg2);
@@ -124,6 +124,11 @@ const executeAction = (actionName: string, arg1: string, arg2?: string) => {
   } else {
     return;
   }
+
+  multiPlayersSelection.value = {
+    firstSelection: "",
+    secondSelection: "",
+  };
 
   onNextRole();
 };
@@ -136,7 +141,7 @@ const getRoleText = (roleKey: string) => {
     "lucky-guyZero": "Выберите игрока на роли счастливчика",
     mafia: "Выберите игрока на роли мафии и его цель",
     don: "Выберите игрока на роли дона и его цель",
-    sectarian: "Выберите игрока на роли сектанта и его цель",
+    sectarian: "Выберите сектанта. Второй сектант необязателен.",
     detective: "Выберите цель для проверки детектива",
     journalist: "Выберите цели игрока на роли журналиста для проверки",
     patrol: "Выберите цели игрока на роли патрульного",
@@ -167,7 +172,16 @@ const isDoubleAction = computed(() => {
   return doubleActionRoles.includes(currentRoleName.value);
 });
 
+const isSectarianSelection = computed(() => currentRoleName.value === 'sectarian');
+
 const isDoubleActionReady = computed(() => {
+  if (isSectarianSelection.value) {
+    return Boolean(
+      multiPlayersSelection.value.firstSelection
+      && multiPlayersSelection.value.firstSelection !== multiPlayersSelection.value.secondSelection,
+    );
+  }
+
   return Boolean(
     multiPlayersSelection.value.firstSelection
     && multiPlayersSelection.value.secondSelection
@@ -217,12 +231,12 @@ useHead({
               <div class="w-full flex flex-col gap-4" v-if="isDoubleAction">
                 <SharedUiDropDown
                   v-model="multiPlayersSelection.firstSelection"
-                  :label="`Игрок 1`"
+                  :label="isSectarianSelection ? 'Сектант 1' : 'Игрок 1'"
                   :options="playerOptions"
                 />
                 <SharedUiDropDown
                   v-model="multiPlayersSelection.secondSelection"
-                  label="Игрок 2 (Цель)"
+                  :label="isSectarianSelection ? 'Игрок 2 (необязательно)' : 'Игрок 2 (Цель)'"
                   :options="selectedActorTargetOptions"
                 />
                 <p
@@ -233,7 +247,7 @@ useHead({
                 </p>
                 <SharedUiButton
                   class="mt-2 w-full"
-                  text="Продолжить"
+                  :text="isSectarianSelection && !multiPlayersSelection.secondSelection ? 'Завершить выбор' : 'Продолжить'"
                   :disabled="!isDoubleActionReady"
                   @click="executeAction(currentRoleName, multiPlayersSelection.firstSelection, multiPlayersSelection.secondSelection)"
                 />

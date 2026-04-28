@@ -57,6 +57,7 @@ const multiPlayersSelection = ref({
 });
 
 const isDoubleTarget = computed(() => currentNightRole.value === 'journalist');
+const isSectarianNightRole = computed(() => currentNightRole.value === 'sectarian');
 const isNightActionReady = computed(() => {
   if (!currentNightRole.value) return false;
   if (!isDoubleTarget.value) return true;
@@ -154,7 +155,7 @@ const getRoleText = (roleKey: string) => {
   const texts: Record<string, string> = {
     mafia: "Мафия: выберите жертву",
     don: "Дон: выберите игрока для проверки",
-    sectarian: "Сектант: выберите игрока для вербовки",
+    sectarian: "Сектант: выберите игрока для вербовки или пропустите выбор цели",
     detective: "Детектив: выберите игрока для проверки",
     journalist: "Журналист: выберите двух игроков",
     patrol: "Патрульный: выберите игрока для проверки",
@@ -252,8 +253,15 @@ const resolveVoting = () => {
         } else {
            fortuneWheelActivePlayer.value = savedPlayer?.name || '';
            setTimeout(() => {
-             toast.success(`Колесо Фортуны спасло игрока: ${savedPlayer?.name || ''}! Никто не изгнан.`, 'Колесо Фортуны', 6000);
-             finishVotingPhase(kickedPlayer, true);
+             const wasKickedPlayerSaved = savedPlayer?.name === kickedPlayer;
+
+             if (wasKickedPlayerSaved) {
+               toast.success(`Колесо Фортуны спасло игрока: ${kickedPlayer}! Никто не изгнан.`, 'Колесо Фортуны', 6000);
+             } else {
+               toast.info(`Колесо Фортуны выбрало игрока: ${savedPlayer?.name || ''}. ${kickedPlayer} изгнан голосованием.`, 'Колесо Фортуны', 6000);
+             }
+
+             finishVotingPhase(kickedPlayer, wasKickedPlayerSaved);
            }, 1500);
         }
       };
@@ -468,6 +476,12 @@ useHead({
               >
                 Ходит {{ currentRoleActor.name }}. Его нельзя выбрать целью.
               </p>
+              <p
+                v-if="isSectarianNightRole"
+                class="mt-3 text-sm text-amber-200"
+              >
+                Сектанты могут не выбирать цель этой ночью.
+              </p>
             </div>
             <button
               class="rounded-full border border-neutral-700 bg-neutral-800/80 px-3 py-1 text-sm text-neutral-300 hover:border-blue-400/60 hover:text-blue-100 transition-colors"
@@ -517,7 +531,7 @@ useHead({
           <div class="pt-4 border-t border-neutral-800 flex flex-col sm:flex-row gap-3">
             <SharedUiButton
               class="w-full !bg-neutral-800 !text-neutral-400 hover:!bg-neutral-700"
-              text="Пропустить действие"
+              :text="isSectarianNightRole ? 'Не выбирать цель' : 'Пропустить действие'"
               @click="skipNightAction"
             />
             <SharedUiButton
