@@ -29,6 +29,8 @@ const multiPlayersSelection = ref<{
   firstSelection: "",
   secondSelection: "",
 });
+const mafiaSelections = ref<string[]>([]);
+const mafiaTargetSelection = ref("");
 
 const inactiveRoles = computed(() => {
   return Object.keys(playersInfo.inactiveRoles).filter(
@@ -53,6 +55,34 @@ const playerOptions = computed(() => {
 const selectedActorTargetOptions = computed(() => {
   return playersInfo.activePlayers
     .filter((player) => player.name !== multiPlayersSelection.value.firstSelection)
+    .map((player) => ({ label: player.name, value: player.name }));
+});
+const mafiaSelectionCount = computed(() => {
+  return Math.max(parseInt(playersInfo.amountOfMafia.toString()) || 0, 0);
+});
+const mafiaSelectionSlots = computed(() => {
+  return Array.from({ length: mafiaSelectionCount.value }, (_, index) => index);
+});
+const isMafiaSelection = computed(() => currentRoleName.value === 'mafia');
+const getMafiaPlayerOptions = (currentIndex: number) => {
+  const selectedByOtherDropdowns = new Set(
+    mafiaSelections.value
+      .slice(0, mafiaSelectionCount.value)
+      .filter((playerName, index) => playerName && index !== currentIndex),
+  );
+
+  return playersInfo.activePlayers
+    .filter((player) => !selectedByOtherDropdowns.has(player.name))
+    .map((player) => ({ label: player.name, value: player.name }));
+};
+const selectedMafiaPlayers = computed(() => {
+  return mafiaSelections.value.slice(0, mafiaSelectionCount.value);
+});
+const mafiaTargetOptions = computed(() => {
+  const selectedMafia = new Set(selectedMafiaPlayers.value.filter(Boolean));
+
+  return playersInfo.activePlayers
+    .filter((player) => !selectedMafia.has(player.name))
     .map((player) => ({ label: player.name, value: player.name }));
 });
 const currentActionActor = computed(() => {
@@ -86,6 +116,37 @@ const onNextRole = () => {
       handleNextRole(nextRoleName, filteredFirstCircleOrder.value);
     }
   }
+};
+
+const executeMafiaSetup = () => {
+  const selectedMafia = selectedMafiaPlayers.value;
+  const uniqueSelectedMafia = new Set(selectedMafia);
+
+  if (selectedMafia.length !== mafiaSelectionCount.value || selectedMafia.some((playerName) => !playerName)) {
+    toast.warning("Выберите всех игроков мафии.");
+    return;
+  }
+
+  if (uniqueSelectedMafia.size !== selectedMafia.length) {
+    toast.warning("Один игрок не может быть выбран мафией несколько раз.");
+    return;
+  }
+
+  if (!mafiaTargetSelection.value) {
+    toast.warning("Выберите цель мафии.");
+    return;
+  }
+
+  if (uniqueSelectedMafia.has(mafiaTargetSelection.value)) {
+    toast.warning("Мафия не может выбрать себя целью.");
+    return;
+  }
+
+  roleActions.assignMafiaPlayers(selectedMafia);
+  roleActions.mafiaTeamKill(mafiaTargetSelection.value);
+  mafiaSelections.value = [];
+  mafiaTargetSelection.value = "";
+  onNextRole();
 };
 
 const executeAction = (actionName: string, arg1: string, arg2?: string) => {
@@ -139,7 +200,7 @@ const getRoleText = (roleKey: string) => {
     patrolZero: "Выберите игрока на роли Патрульного",
     journalistZero: "Выберите игрока на роли журналиста",
     "lucky-guyZero": "Выберите игрока на роли счастливчика",
-    mafia: "Выберите игрока на роли мафии и его цель",
+    mafia: `Выберите игроков мафии: ${mafiaSelectionCount.value}, затем общую цель`,
     don: "Выберите игрока на роли дона и его цель",
     sectarian: "Выберите сектанта. Второй сектант необязателен.",
     detective: "Выберите цель для проверки детектива",
@@ -168,11 +229,21 @@ const getRoleTitle = (roleKey: string) => {
 };
 
 const isDoubleAction = computed(() => {
-  const doubleActionRoles = ['mafia', 'don', 'sectarian', 'journalist', 'patrol', 'doctor'];
+  const doubleActionRoles = ['don', 'sectarian', 'journalist', 'patrol', 'doctor'];
   return doubleActionRoles.includes(currentRoleName.value);
 });
 
 const isSectarianSelection = computed(() => currentRoleName.value === 'sectarian');
+
+const isMafiaSetupReady = computed(() => {
+  const selectedMafia = selectedMafiaPlayers.value;
+
+  return selectedMafia.length === mafiaSelectionCount.value
+    && selectedMafia.every(Boolean)
+    && new Set(selectedMafia).size === selectedMafia.length
+    && Boolean(mafiaTargetSelection.value)
+    && !selectedMafia.includes(mafiaTargetSelection.value);
+});
 
 const isDoubleActionReady = computed(() => {
   if (isSectarianSelection.value) {
@@ -228,7 +299,34 @@ useHead({
             </div>
 
             <div class="rounded-2xl border border-blue-400/10 bg-blue-400/5 p-4">
-              <div class="w-full flex flex-col gap-4" v-if="isDoubleAction">
+              <div v-if="isMafiaSelection" class="w-full flex flex-col gap-4">
+                <SharedUiDropDown
+                  v-for="index in mafiaSelectionSlots"
+                  :key="index"
+                  v-model="mafiaSelections[index]"
+                  :label="`Мафия ${index + 1}`"
+                  :options="getMafiaPlayerOptions(index)"
+                />
+                <p
+                  v-if="mafiaSelectionCount === 0"
+                  class="text-sm text-amber-300"
+                >
+                  Количество игроков мафии равно 0.
+                </p>
+                <SharedUiDropDown
+                  v-model="mafiaTargetSelection"
+                  label="Цель мафии"
+                  :options="mafiaTargetOptions"
+                />
+                <SharedUiButton
+                  class="mt-2 w-full"
+                  text="Продолжить"
+                  :disabled="!isMafiaSetupReady"
+                  @click="executeMafiaSetup"
+                />
+              </div>
+
+              <div v-else-if="isDoubleAction" class="w-full flex flex-col gap-4">
                 <SharedUiDropDown
                   v-model="multiPlayersSelection.firstSelection"
                   :label="isSectarianSelection ? 'Сектант 1' : 'Игрок 1'"

@@ -49,6 +49,20 @@ export const useGameEngine = () => {
     'lucky-guyZero': (playerName: string) => {
       playersInfo.setPlayerRole(playerName, 'lucky-guy');
     },
+    assignMafiaPlayers: (playerNames: string[]) => {
+      playerNames.forEach((playerName) => {
+        playersInfo.setPlayerRole(playerName, 'mafia');
+      });
+    },
+    mafiaTeamKill: (targetPlayerName: string) => {
+      const targetPlayer = playersInfo.activePlayers.find((player) => player.name === targetPlayerName);
+      if (targetPlayer) targetPlayer.lives = 0;
+
+      playersInfo.createNightAction(
+        { affectedPlayer: targetPlayerName, actionPlayer: 'Мафия', action: 'kill' },
+        playersInfo.currentNight
+      );
+    },
     mafia: (playerName: string, targetPlayerName: string) => {
       playersInfo.setPlayerRole(playerName, 'mafia');
       const targetPlayer = playersInfo.activePlayers.find((player) => player.name === targetPlayerName);

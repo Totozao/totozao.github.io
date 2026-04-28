@@ -34,13 +34,26 @@ const currentNightRole = computed(() => currentActiveRolesForNight.value[current
 const isNightPhase = computed(() => playersInfo.currentGameStep === 'night');
 const isDayPhase = computed(() => playersInfo.currentGameStep === 'day');
 const lastNightActions = computed(() => playersInfo.getLastNightActions() || []);
+const isMafiaNightRole = computed(() => currentNightRole.value === 'mafia');
 const currentRoleActor = computed(() => {
   const role = currentNightRole.value;
   return playersInfo.activePlayers.find(p => p.role === role && p.lives > 0);
 });
+const mafiaTeamMembersText = computed(() => {
+  return playersInfo.activePlayers
+    .filter(p => p.role === 'mafia' && p.lives > 0)
+    .map(p => p.name)
+    .join(', ');
+});
 const targetPlayerOptions = computed(() => {
   return playersInfo.activePlayers
-    .filter(p => p.name !== currentRoleActor.value?.name)
+    .filter(p => {
+      if (isMafiaNightRole.value) {
+        return p.role !== 'mafia';
+      }
+
+      return p.name !== currentRoleActor.value?.name;
+    })
     .map(p => ({ label: p.name, value: p.name }));
 });
 
@@ -106,7 +119,7 @@ const nextNightRole = () => {
 
 const executeNightAction = (target1?: string, target2?: string) => {
   const role = currentNightRole.value;
-  const actor = currentRoleActor.value?.name || 'Неизвестный';
+  const actor = isMafiaNightRole.value ? 'Мафия' : currentRoleActor.value?.name || 'Неизвестный';
   
   if (role && isRoleHolderDead(role)) {
     nextNightRole();
@@ -123,7 +136,7 @@ const executeNightAction = (target1?: string, target2?: string) => {
   } else if (role === 'detective' && target1) {
     roleActions.detective(target1);
   } else if (role === 'mafia' && target1) {
-    roleActions.mafia(actor, target1);
+    roleActions.mafiaTeamKill(target1);
   } else if (role === 'don' && target1) {
     roleActions.don(actor, target1);
   } else if (role === 'sectarian' && target1) {
@@ -139,7 +152,9 @@ const executeNightAction = (target1?: string, target2?: string) => {
 
 const skipNightAction = () => {
   const role = currentNightRole.value;
-  const actor = playersInfo.activePlayers.find(p => p.role === role && p.lives > 0)?.name || getRoleTitle(role);
+  const actor = isMafiaNightRole.value
+    ? 'Мафия'
+    : playersInfo.activePlayers.find(p => p.role === role && p.lives > 0)?.name || getRoleTitle(role);
 
   if (role) {
     playersInfo.createNightAction(
@@ -366,7 +381,13 @@ useHead({
                       {{ currentNightRole ? getRoleText(currentNightRole) : 'Нет активных ролей для этой ночи.' }}
                     </p>
                     <p
-                      v-if="currentRoleActor"
+                      v-if="isMafiaNightRole && mafiaTeamMembersText"
+                      class="w-fit rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-medium text-emerald-200"
+                    >
+                      Мафия действует командой: {{ mafiaTeamMembersText }}. Выберите одну общую жертву.
+                    </p>
+                    <p
+                      v-else-if="currentRoleActor"
                       class="w-fit rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-medium text-emerald-200"
                     >
                       {{ currentRoleActor.name }} на роли {{ getRoleTitle(currentNightRole) }} жив и делает ход.
@@ -471,7 +492,13 @@ useHead({
               <h2 class="mt-2 text-2xl font-bold text-neutral-100">{{ getRoleTitle(currentNightRole) }}</h2>
               <p class="mt-2 text-sm text-neutral-400">{{ currentNightRole ? getRoleText(currentNightRole) : 'Нет доступных действий.' }}</p>
               <p
-                v-if="currentRoleActor"
+                v-if="isMafiaNightRole && mafiaTeamMembersText"
+                class="mt-3 w-fit rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-medium text-emerald-200"
+              >
+                Мафия действует командой: {{ mafiaTeamMembersText }}. Игроков мафии нельзя выбрать целью.
+              </p>
+              <p
+                v-else-if="currentRoleActor"
                 class="mt-3 w-fit rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-medium text-emerald-200"
               >
                 Ходит {{ currentRoleActor.name }}. Его нельзя выбрать целью.
