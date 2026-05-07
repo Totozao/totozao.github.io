@@ -214,9 +214,7 @@ export const usePlayersInfo = defineStore(
       for (let i = 0; i < mafiaCount; i++) rolePool.push('mafia');
 
       if (!excluded.includes('don')) rolePool.push('don');
-      for (let i = 0; i < sectarianCount; i++) {
-        if (!excluded.includes('sectarian')) rolePool.push('sectarian');
-      }
+      if (sectarianCount > 0 && !excluded.includes('sectarian')) rolePool.push('sectarian');
       if (!excluded.includes('maniac')) rolePool.push('maniac');
       if (!excluded.includes('detective')) rolePool.push('detective');
       if (!excluded.includes('patrol')) rolePool.push('patrol');

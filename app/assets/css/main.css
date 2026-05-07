@@ -2,23 +2,32 @@
 @import "./tailwind.css";
 
 html {
-  background-color: #dfe5fb;
-  scroll-behavior: smooth;
+    background-color: #dfe5fb;
+    scroll-behavior: smooth;
 }
 
 .defaultShadow {
-  box-shadow: 0px 4px 15px 0px #0f1a2c0d;
+    box-shadow: 0px 4px 15px 0px #0f1a2c0d;
 }
 
 * {
-  transition: all 0.3s ease-in-out;
+    transition: all 0.3s ease-in-out;
 }
 
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.5s ease;
+    transition: opacity 0.5s ease;
 }
 .fade-enter-from,
 .fade-leave-to {
-  opacity: 0;
+    opacity: 0;
+}
+
+.flip-enter-active,
+.flip-leave-active {
+    transition: opacity 0.5s ease;
+}
+.flip-enter-from,
+.flip-leave-to {
+    opacity: 0;
 }
