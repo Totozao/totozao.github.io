@@ -14,7 +14,7 @@ export const useGameEngine = () => {
 
   const sidesOfJournalistCheck = {
     teamOne: ['detective', 'patrol', 'journalist', 'lucky-guy', 'doctor', 'civilian'],
-    teamTwo: ['mafia', 'don', 'sectarian'],
+    teamTwo: ['mafia', 'don', 'sectarian', 'maniac'],
   };
 
   const handleNextRole = (currentRoleName: string, filteredFirstCircleOrder: FirstCircleStep[]) => {
@@ -49,10 +49,22 @@ export const useGameEngine = () => {
     'lucky-guyZero': (playerName: string) => {
       playersInfo.setPlayerRole(playerName, 'lucky-guy');
     },
+    maniacZero: (playerName: string) => {
+      playersInfo.setPlayerRole(playerName, 'maniac');
+    },
     assignMafiaPlayers: (playerNames: string[]) => {
       playerNames.forEach((playerName) => {
         playersInfo.setPlayerRole(playerName, 'mafia');
       });
+    },
+    maniacKill: (playerName: string, targetPlayerName: string) => {
+      const targetPlayer = playersInfo.activePlayers.find((player) => player.name === targetPlayerName);
+      if (targetPlayer) targetPlayer.lives = 0;
+
+      playersInfo.createNightAction(
+        { affectedPlayer: targetPlayerName, actionPlayer: playerName, action: 'kill' },
+        playersInfo.currentNight
+      );
     },
     mafiaTeamKill: (targetPlayerName: string) => {
       const targetPlayer = playersInfo.activePlayers.find((player) => player.name === targetPlayerName);
@@ -119,7 +131,7 @@ export const useGameEngine = () => {
     },
     detective: (targetPlayerName: string) => {
       const affectedPlayerRole = playersInfo.getPlayerRole(targetPlayerName);
-      const positiveRoles = ['sectarian', 'don', 'mafia'];
+      const positiveRoles = ['sectarian', 'don', 'mafia', 'maniac'];
       const detectivePlayer = playersInfo.activePlayers.find((player) => player.role === 'detective')?.name || 'Неизвестно';
       
       playersInfo.createNightAction(
@@ -128,7 +140,7 @@ export const useGameEngine = () => {
       );
 
       if (positiveRoles.includes(affectedPlayerRole!)) {
-        toast.error(`${targetPlayerName} - мафия/сектант`, 'Проверка Детектива', 5000);
+        toast.error(`${targetPlayerName} - мафия/сектант/маньяк`, 'Проверка Детектива', 5000);
       } else {
         toast.success(`${targetPlayerName} - мирный`, 'Проверка Детектива', 5000);
       }
@@ -160,15 +172,15 @@ export const useGameEngine = () => {
     patrol: (playerName: string, targetPlayerName: string) => {
       playersInfo.setPlayerRole(playerName, 'patrol');
       const affectedPlayerRole = playersInfo.getPlayerRole(targetPlayerName);
-      const positiveRoles = ['sectarian', 'don', 'mafia'];
-      
+      const positiveRoles = ['sectarian', 'don', 'mafia', 'maniac'];
+
       playersInfo.createNightAction(
         { affectedPlayer: targetPlayerName, actionPlayer: playerName, action: 'check' },
         playersInfo.currentNight
       );
 
       if (positiveRoles.includes(affectedPlayerRole!)) {
-        toast.error(`${targetPlayerName} проверен: мафия/сектант`, 'Патрульный', 5000);
+        toast.error(`${targetPlayerName} проверен: мафия/сектант/маньяк`, 'Патрульный', 5000);
       } else {
         toast.success(`${targetPlayerName} проверен: мирный`, 'Патрульный', 5000);
       }

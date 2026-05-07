@@ -8,7 +8,7 @@ const playersInfo = usePlayersInfo();
 const { roleActions } = useGameEngine();
 const toast = useToast();
 
-const nightRoleOrder = ['mafia', 'don', 'sectarian', 'detective', 'patrol', 'doctor', 'journalist'];
+const nightRoleOrder = ['mafia', 'don', 'sectarian', 'maniac', 'detective', 'patrol', 'doctor', 'journalist'];
 const isNightActionModalVisible = ref(false);
 const isNightLogModalVisible = ref(false);
 
@@ -88,6 +88,7 @@ const getRoleTitle = (roleKey?: string) => {
     mafia: 'Мафия',
     don: 'Дон',
     sectarian: 'Сектант',
+    maniac: 'Маньяк',
     detective: 'Детектив',
     journalist: 'Журналист',
     patrol: 'Патрульный',
@@ -137,6 +138,8 @@ const executeNightAction = (target1?: string, target2?: string) => {
     roleActions.detective(target1);
   } else if (role === 'mafia' && target1) {
     roleActions.mafiaTeamKill(target1);
+  } else if (role === 'maniac' && target1) {
+    roleActions.maniacKill(actor, target1);
   } else if (role === 'don' && target1) {
     roleActions.don(actor, target1);
   } else if (role === 'sectarian' && target1) {
@@ -171,6 +174,7 @@ const getRoleText = (roleKey: string) => {
     mafia: "Мафия: выберите жертву",
     don: "Дон: выберите игрока для проверки",
     sectarian: "Сектант: выберите игрока для вербовки или пропустите выбор цели",
+    maniac: "Маньяк: выберите жертву",
     detective: "Детектив: выберите игрока для проверки",
     journalist: "Журналист: выберите двух игроков",
     patrol: "Патрульный: выберите игрока для проверки",
@@ -301,7 +305,7 @@ const checkWinConditions = () => {
     return;
   }
 
-  const negativeRoles = ['mafia', 'don', 'sectarian'];
+  const negativeRoles = ['mafia', 'don', 'sectarian', 'maniac'];
   const isNegative = (r: string) => negativeRoles.includes(r);
   
   const aliveNegatives = alive.filter(p => isNegative(p.role));
@@ -369,50 +373,51 @@ useHead({
           <ClientOnly>
             <div class="w-full bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-xl backdrop-blur-sm relative overflow-hidden">
               <div class="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-indigo-500/5 to-purple-500/10 pointer-events-none"></div>
-              
-              <div class="flex flex-col gap-6 relative z-10">
-                <div class="flex items-start justify-between gap-4">
-                  <div class="space-y-2">
-                    <p class="text-xs uppercase tracking-[0.3em] text-blue-300/70">Текущий ход</p>
-                    <h2 class="text-2xl font-bold text-neutral-100">
-                      {{ currentNightRole ? getRoleTitle(currentNightRole) : 'Ночь без действий' }}
-                    </h2>
-                    <p class="text-neutral-400">
-                      {{ currentNightRole ? getRoleText(currentNightRole) : 'Нет активных ролей для этой ночи.' }}
-                    </p>
-                    <p
-                      v-if="isMafiaNightRole && mafiaTeamMembersText"
-                      class="w-fit rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-medium text-emerald-200"
-                    >
-                      Мафия действует командой: {{ mafiaTeamMembersText }}. Выберите одну общую жертву.
-                    </p>
-                    <p
-                      v-else-if="currentRoleActor"
-                      class="w-fit rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-medium text-emerald-200"
-                    >
-                      {{ currentRoleActor.name }} на роли {{ getRoleTitle(currentNightRole) }} жив и делает ход.
-                    </p>
+
+              <Transition name="role-card" mode="out-in">
+                <div :key="currentNightRole" class="flex flex-col gap-6 relative z-10">
+                  <div class="flex items-start justify-between gap-4">
+                    <div class="space-y-2">
+                      <p class="text-xs uppercase tracking-[0.3em] text-blue-300/70">Текущий ход</p>
+                      <h2 class="text-2xl font-bold text-neutral-100">
+                        {{ currentNightRole ? getRoleTitle(currentNightRole) : 'Ночь без действий' }}
+                      </h2>
+                      <p class="text-neutral-400">
+                        {{ currentNightRole ? getRoleText(currentNightRole) : 'Нет активных ролей для этой ночи.' }}
+                      </p>
+                      <p
+                        v-if="isMafiaNightRole && mafiaTeamMembersText"
+                        class="w-fit rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-medium text-emerald-200"
+                      >
+                        Мафия действует командой: {{ mafiaTeamMembersText }}. Выберите одну общую жертву.
+                      </p>
+                      <p
+                        v-else-if="currentRoleActor"
+                        class="w-fit rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-medium text-emerald-200"
+                      >
+                        {{ currentRoleActor.name }} на роли {{ getRoleTitle(currentNightRole) }} жив и делает ход.
+                      </p>
+                    </div>
+                    <span class="rounded-full border border-blue-400/20 bg-blue-400/10 px-3 py-1 text-sm font-semibold text-blue-200">
+                      {{ currentNightRoleIndex + 1 }}/{{ Math.max(currentActiveRolesForNight.length, 1) }}
+                    </span>
                   </div>
-                  <span class="rounded-full border border-blue-400/20 bg-blue-400/10 px-3 py-1 text-sm font-semibold text-blue-200">
-                    {{ currentNightRoleIndex + 1 }}/{{ Math.max(currentActiveRolesForNight.length, 1) }}
-                  </span>
-                </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <SharedUiButton
-                    class="w-full !bg-gradient-to-r !from-blue-600 !to-indigo-600 border-none shadow-[0_0_24px_rgba(37,99,235,0.25)]"
-                    text="Открыть действие"
-                    :disabled="!currentNightRole"
-                    @click="isNightActionModalVisible = true"
-                  />
-                  <SharedUiButton
-                    class="w-full !bg-neutral-800 !text-neutral-300 hover:!bg-neutral-700"
-                    text="Завершить ночь"
-                    @click="finishNight"
-                  />
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <SharedUiButton
+                      class="w-full !bg-gradient-to-r !from-blue-600 !to-indigo-600 border-none shadow-[0_0_24px_rgba(37,99,235,0.25)]"
+                      text="Открыть действие"
+                      :disabled="!currentNightRole"
+                      @click="isNightActionModalVisible = true"
+                    />
+                    <SharedUiButton
+                      class="w-full !bg-neutral-800 !text-neutral-300 hover:!bg-neutral-700"
+                      text="Завершить ночь"
+                      @click="finishNight"
+                    />
+                  </div>
                 </div>
-
-              </div>
+              </Transition>
             </div>
           </ClientOnly>
         </template>
@@ -485,89 +490,91 @@ useHead({
       </template>
 
       <SharedUiModal :isModalVisible="isNightActionModalVisible">
-        <div class="relative z-10 flex flex-col gap-6">
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <p class="text-xs uppercase tracking-[0.3em] text-blue-300/70">Ночное действие</p>
-              <h2 class="mt-2 text-2xl font-bold text-neutral-100">{{ getRoleTitle(currentNightRole) }}</h2>
-              <p class="mt-2 text-sm text-neutral-400">{{ currentNightRole ? getRoleText(currentNightRole) : 'Нет доступных действий.' }}</p>
-              <p
-                v-if="isMafiaNightRole && mafiaTeamMembersText"
-                class="mt-3 w-fit rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-medium text-emerald-200"
+        <Transition name="role-card" mode="out-in">
+          <div :key="currentNightRole" class="relative z-10 flex flex-col gap-6">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <p class="text-xs uppercase tracking-[0.3em] text-blue-300/70">Ночное действие</p>
+                <h2 class="mt-2 text-2xl font-bold text-neutral-100">{{ getRoleTitle(currentNightRole) }}</h2>
+                <p class="mt-2 text-sm text-neutral-400">{{ currentNightRole ? getRoleText(currentNightRole) : 'Нет доступных действий.' }}</p>
+                <p
+                  v-if="isMafiaNightRole && mafiaTeamMembersText"
+                  class="mt-3 w-fit sm:rounded-full max-sm:rounded-[16px] border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-medium text-emerald-200"
+                >
+                  Мафия действует командой: {{ mafiaTeamMembersText }}. Игроков мафии нельзя выбрать целью.
+                </p>
+                <p
+                  v-else-if="currentRoleActor"
+                  class="mt-3 w-fit rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-medium text-emerald-200"
+                >
+                  Ходит {{ currentRoleActor.name }}. Его нельзя выбрать целью.
+                </p>
+                <p
+                  v-if="isSectarianNightRole"
+                  class="mt-3 text-sm text-amber-200"
+                >
+                  Сектанты могут не выбирать цель этой ночью.
+                </p>
+              </div>
+              <button
+                class="rounded-full border border-neutral-700 bg-neutral-800/80 px-3 py-1 text-sm text-neutral-300 hover:border-blue-400/60 hover:text-blue-100 transition-colors"
+                @click="isNightActionModalVisible = false"
               >
-                Мафия действует командой: {{ mafiaTeamMembersText }}. Игроков мафии нельзя выбрать целью.
-              </p>
-              <p
-                v-else-if="currentRoleActor"
-                class="mt-3 w-fit rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-medium text-emerald-200"
-              >
-                Ходит {{ currentRoleActor.name }}. Его нельзя выбрать целью.
-              </p>
-              <p
-                v-if="isSectarianNightRole"
-                class="mt-3 text-sm text-amber-200"
-              >
-                Сектанты могут не выбирать цель этой ночью.
-              </p>
+                Закрыть
+              </button>
             </div>
-            <button
-              class="rounded-full border border-neutral-700 bg-neutral-800/80 px-3 py-1 text-sm text-neutral-300 hover:border-blue-400/60 hover:text-blue-100 transition-colors"
-              @click="isNightActionModalVisible = false"
-            >
-              Закрыть
-            </button>
-          </div>
 
-          <div class="rounded-2xl border border-blue-400/10 bg-blue-400/5 p-4">
-            <div class="w-full flex flex-col gap-4" v-if="isDoubleTarget">
-              <SharedUiDropDown
-                v-model="multiPlayersSelection.firstSelection"
-                label="Игрок 1"
-                :options="targetPlayerOptions"
-              />
-              <SharedUiDropDown
-                v-model="multiPlayersSelection.secondSelection"
-                label="Игрок 2"
-                :options="targetPlayerOptions"
-              />
-              <p
-                v-if="multiPlayersSelection.firstSelection && multiPlayersSelection.firstSelection === multiPlayersSelection.secondSelection"
-                class="text-sm text-amber-300"
-              >
-                Выберите двух разных игроков.
-              </p>
-              <SharedUiButton
-                class="mt-2 w-full"
-                text="Продолжить"
-                @click="executeNightAction(multiPlayersSelection.firstSelection, multiPlayersSelection.secondSelection)"
-                :disabled="!isNightActionReady"
-              />
-            </div>
-            
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full" v-else>
-              <SharedUiButton
-                v-for="player in targetPlayerOptions"
-                :key="player.value"
-                :text="player.label"
-                class="w-full"
-                @click="executeNightAction(player.value)"
-              />
-            </div>
-          </div>
+            <div class="rounded-2xl border border-blue-400/10 bg-blue-400/5 p-4">
+              <div class="w-full flex flex-col gap-4" v-if="isDoubleTarget">
+                <SharedUiDropDown
+                  v-model="multiPlayersSelection.firstSelection"
+                  label="Игрок 1"
+                  :options="targetPlayerOptions"
+                />
+                <SharedUiDropDown
+                  v-model="multiPlayersSelection.secondSelection"
+                  label="Игрок 2"
+                  :options="targetPlayerOptions"
+                />
+                <p
+                  v-if="multiPlayersSelection.firstSelection && multiPlayersSelection.firstSelection === multiPlayersSelection.secondSelection"
+                  class="text-sm text-amber-300"
+                >
+                  Выберите двух разных игроков.
+                </p>
+                <SharedUiButton
+                  class="mt-2 w-full"
+                  text="Продолжить"
+                  @click="executeNightAction(multiPlayersSelection.firstSelection, multiPlayersSelection.secondSelection)"
+                  :disabled="!isNightActionReady"
+                />
+              </div>
 
-          <div class="pt-4 border-t border-neutral-800 flex flex-col sm:flex-row gap-3">
-            <SharedUiButton
-              class="w-full !bg-neutral-800 !text-neutral-400 hover:!bg-neutral-700"
-              :text="isSectarianNightRole ? 'Не выбирать цель' : 'Пропустить действие'"
-              @click="skipNightAction"
-            />
-            <SharedUiButton
-              class="w-full !bg-neutral-800 !text-neutral-400 hover:!bg-neutral-700"
-              text="Закрыть"
-              @click="isNightActionModalVisible = false"
-            />
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full" v-else>
+                <SharedUiButton
+                  v-for="player in targetPlayerOptions"
+                  :key="player.value"
+                  :text="player.label"
+                  class="w-full"
+                  @click="executeNightAction(player.value)"
+                />
+              </div>
+            </div>
+
+            <div class="pt-4 border-t border-neutral-800 flex flex-col sm:flex-row gap-3">
+              <SharedUiButton
+                class="w-full !bg-neutral-800 !text-neutral-400 hover:!bg-neutral-700"
+                :text="isSectarianNightRole ? 'Не выбирать цель' : 'Пропустить действие'"
+                @click="skipNightAction"
+              />
+              <SharedUiButton
+                class="w-full !bg-neutral-800 !text-neutral-400 hover:!bg-neutral-700"
+                text="Закрыть"
+                @click="isNightActionModalVisible = false"
+              />
+            </div>
           </div>
-        </div>
+        </Transition>
       </SharedUiModal>
 
       <SharedUiModal :isModalVisible="isNightLogModalVisible">
@@ -601,3 +608,21 @@ useHead({
     </div>
   </NuxtLayout>
 </template>
+
+<style scoped>
+/* Role card slide-fade transition */
+.role-card-enter-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.role-card-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.role-card-enter-from {
+  opacity: 0;
+  transform: translateX(24px);
+}
+.role-card-leave-to {
+  opacity: 0;
+  transform: translateX(-24px);
+}
+</style>
