@@ -59,7 +59,7 @@ export const useGameEngine = () => {
     },
     maniacKill: (playerName: string, targetPlayerName: string) => {
       const targetPlayer = playersInfo.activePlayers.find((player) => player.name === targetPlayerName);
-      if (targetPlayer) targetPlayer.lives = 0;
+      if (targetPlayer) targetPlayer.lives -= 1;
 
       playersInfo.createNightAction(
         { affectedPlayer: targetPlayerName, actionPlayer: playerName, action: 'kill' },
@@ -68,7 +68,7 @@ export const useGameEngine = () => {
     },
     mafiaTeamKill: (targetPlayerName: string) => {
       const targetPlayer = playersInfo.activePlayers.find((player) => player.name === targetPlayerName);
-      if (targetPlayer) targetPlayer.lives = 0;
+      if (targetPlayer) targetPlayer.lives -= 1;
 
       playersInfo.createNightAction(
         { affectedPlayer: targetPlayerName, actionPlayer: 'Мафия', action: 'kill' },
@@ -78,7 +78,7 @@ export const useGameEngine = () => {
     mafia: (playerName: string, targetPlayerName: string) => {
       playersInfo.setPlayerRole(playerName, 'mafia');
       const targetPlayer = playersInfo.activePlayers.find((player) => player.name === targetPlayerName);
-      if (targetPlayer) targetPlayer.lives = 0;
+      if (targetPlayer) targetPlayer.lives -= 1;
       
       playersInfo.createNightAction(
         { affectedPlayer: targetPlayerName, actionPlayer: playerName, action: 'kill' },

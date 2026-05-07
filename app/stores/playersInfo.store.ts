@@ -27,6 +27,7 @@ export const usePlayersInfo = defineStore(
     });
     
     const totalSectariansCreated = ref<number>(0);
+    const isMasterMode = ref<boolean>(false);
 
     const activeRoles = ref<string[]>([]);
     const currentRole = ref<string | undefined>(undefined);
@@ -202,6 +203,37 @@ export const usePlayersInfo = defineStore(
         ?.role;
     };
 
+    const assignRolesRandomly = () => {
+      const playerCount = activePlayers.value.length;
+      const excluded = Object.keys(inactiveRoles.value).filter(r => inactiveRoles.value[r]);
+      const rolePool: string[] = [];
+
+      const mafiaCount = Math.max(parseInt(amountOfMafia.value.toString()) || 1, 1);
+      const sectarianCount = Math.max(parseInt(maxSectarians.value.toString()) || 0, 0);
+
+      for (let i = 0; i < mafiaCount; i++) rolePool.push('mafia');
+
+      if (!excluded.includes('don')) rolePool.push('don');
+      for (let i = 0; i < sectarianCount; i++) {
+        if (!excluded.includes('sectarian')) rolePool.push('sectarian');
+      }
+      if (!excluded.includes('maniac')) rolePool.push('maniac');
+      if (!excluded.includes('detective')) rolePool.push('detective');
+      if (!excluded.includes('patrol')) rolePool.push('patrol');
+      if (!excluded.includes('doctor')) rolePool.push('doctor');
+      if (!excluded.includes('journalist')) rolePool.push('journalist');
+      if (!excluded.includes('lucky-guy')) rolePool.push('lucky-guy');
+
+      const shuffledPlayers = [...activePlayers.value].sort(() => Math.random() - 0.5);
+      shuffledPlayers.forEach((player, index) => {
+        const role = rolePool[index] || 'civilian';
+        const target = activePlayers.value.find(p => p.name === player.name);
+        if (target) target.role = role;
+      });
+
+      totalSectariansCreated.value = activePlayers.value.filter(p => p.role === 'sectarian').length;
+    };
+
     return {
       activePlayers,
       lastCirclePlayers,
@@ -214,8 +246,10 @@ export const usePlayersInfo = defineStore(
       players,
       currentRestrictedMembersCount,
       totalSectariansCreated,
+      isMasterMode,
       activeRoles,
       currentNight,
+      assignRolesRandomly,
       fillMissingRoles,
       handleNextRole,
       getNightActions,

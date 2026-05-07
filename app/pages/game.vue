@@ -8,6 +8,24 @@ const playersInfo = usePlayersInfo();
 const { roleActions } = useGameEngine();
 const toast = useToast();
 
+const roleDisplayNames: Record<string, string> = {
+  mafia: 'Мафия', don: 'Дон', sectarian: 'Сектант', maniac: 'Маньяк',
+  detective: 'Детектив', patrol: 'Патрульный', doctor: 'Доктор',
+  journalist: 'Журналист', 'lucky-guy': 'Везунчик', civilian: 'Мирный',
+};
+
+const isMasterPanelOpen = ref(false);
+
+const masterRoleGroups = computed(() => {
+  const groups: Record<string, string[]> = {};
+  for (const p of playersInfo.activePlayers) {
+    const role = p.role || 'civilian';
+    if (!groups[role]) groups[role] = [];
+    groups[role].push(p.name);
+  }
+  return groups;
+});
+
 const nightRoleOrder = ['mafia', 'don', 'sectarian', 'maniac', 'detective', 'patrol', 'doctor', 'journalist'];
 const isNightActionModalVisible = ref(false);
 const isNightLogModalVisible = ref(false);
@@ -576,6 +594,32 @@ useHead({
           </div>
         </Transition>
       </SharedUiModal>
+
+      <!-- MASTER PANEL (only in master mode) -->
+      <div v-if="playersInfo.isMasterMode" class="w-full">
+        <button
+          class="w-full flex items-center justify-between rounded-2xl border border-indigo-500/30 bg-indigo-500/10 px-5 py-3 text-indigo-200 hover:bg-indigo-500/20 transition-all"
+          @click="isMasterPanelOpen = !isMasterPanelOpen"
+        >
+          <span class="font-semibold">Роли игроков (мастер)</span>
+          <span class="text-lg">{{ isMasterPanelOpen ? '▲' : '▼' }}</span>
+        </button>
+        <Transition name="role-card">
+          <div
+            v-if="isMasterPanelOpen"
+            class="mt-2 w-full rounded-2xl border border-neutral-800 bg-neutral-900 p-4 flex flex-col gap-3"
+          >
+            <div
+              v-for="(players, role) in masterRoleGroups"
+              :key="role"
+              class="flex items-center justify-between gap-3 rounded-xl border border-neutral-800 bg-neutral-800/50 px-4 py-2"
+            >
+              <span class="font-semibold text-neutral-300 min-w-[90px]">{{ roleDisplayNames[role] || role }}</span>
+              <span class="text-neutral-400 text-sm text-right">{{ players.join(', ') }}</span>
+            </div>
+          </div>
+        </Transition>
+      </div>
 
       <SharedUiModal :isModalVisible="isNightLogModalVisible">
         <div class="relative z-10 flex flex-col gap-5">

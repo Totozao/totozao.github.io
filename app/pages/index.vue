@@ -58,6 +58,7 @@ const handleStartGame = () => {
     playersInfo.currentGameStep = "night";
     playersInfo.resetActivePlayers();
     playersInfo.setActiveRoles();
+    playersInfo.isMasterMode = false;
     navigateTo({
       path: "/first-circle",
       query: {
@@ -65,6 +66,24 @@ const handleStartGame = () => {
       },
     });
   }
+};
+
+const handleStartPlayerChoose = () => {
+  if (playersInfo.players.length < 6) {
+    toast.warning("Недостаточно игроков (минимум 6)");
+    return;
+  }
+  playersInfo.activePlayers = [...playersInfo.players];
+  playersInfo.currentNight = 0;
+  playersInfo.nightsLogs = [];
+  playersInfo.saveLastCirclePlayers(playersInfo.players);
+  playersInfo.totalSectariansCreated = 0;
+  playersInfo.currentGameStep = "night";
+  playersInfo.resetActivePlayers();
+  playersInfo.setActiveRoles();
+  playersInfo.assignRolesRandomly();
+  playersInfo.isMasterMode = true;
+  navigateTo('/players-choose');
 };
 
 useHead({
@@ -191,11 +210,18 @@ useHead({
         </div>
       </div>
 
-      <SharedUiButton
-        class="w-full max-w-sm mt-4 text-lg py-4 !bg-gradient-to-r !from-rose-600 !to-purple-600 border-none shadow-[0_0_30px_rgba(225,29,72,0.3)] hover:shadow-[0_0_40px_rgba(225,29,72,0.5)]"
-        text="Начать игру"
-        @click="handleStartGame"
-      />
+      <div class="w-full max-w-sm mt-4 flex flex-col gap-3">
+        <SharedUiButton
+          class="w-full text-lg py-4 !bg-gradient-to-r !from-rose-600 !to-purple-600 border-none shadow-[0_0_30px_rgba(225,29,72,0.3)] hover:shadow-[0_0_40px_rgba(225,29,72,0.5)]"
+          text="Начать игру"
+          @click="handleStartGame"
+        />
+        <SharedUiButton
+          class="w-full text-lg py-4 !bg-gradient-to-r !from-indigo-600 !to-purple-600 border-none shadow-[0_0_30px_rgba(99,102,241,0.3)] hover:shadow-[0_0_40px_rgba(99,102,241,0.5)]"
+          text="Раздать роли"
+          @click="handleStartPlayerChoose"
+        />
+      </div>
     </div>
 
     <SharedUiModal :isModalVisible="isAddPlayerModalVisible">
